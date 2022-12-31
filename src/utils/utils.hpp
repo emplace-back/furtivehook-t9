@@ -60,7 +60,7 @@ namespace std
 	template<typename T1, typename T2>
 	struct hash<pair<T1, T2>>
 	{
-		size_t operator()(const pair<T1, T2>& x) const
+		size_t operator()(const pair<T1, T2>& x) const noexcept
 		{
 			return hash<T1>()(x.first) ^ hash<T2>()(x.second);
 		}

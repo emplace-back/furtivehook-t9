@@ -15,7 +15,7 @@ namespace exception
 			return address >= base && address < base - 0x1000 + self.get_nt_headers()->OptionalHeader.SizeOfImage;
 		}
 		
-		bool handle_exception(const EXCEPTION_POINTERS* ex)
+		bool handle_exception(PEXCEPTION_POINTERS ex)
 		{
 			const auto code = ex->ExceptionRecord->ExceptionCode;
 			const auto addr = ex->ContextRecord->Rip;
@@ -81,10 +81,5 @@ namespace exception
 			return;
 
 		rtl_dispatch_exception_hook.create(rtl_dispatch_exception_ptr, rtl_dispatch_exception);
-
-		scheduler::once([]()
-		{
-			//*(int*)0 = 0;
-		}, scheduler::pipeline::main);
 	}
 }

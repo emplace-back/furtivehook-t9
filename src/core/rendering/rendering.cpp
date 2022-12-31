@@ -28,9 +28,7 @@ namespace rendering
 	
 	void initialize()
 	{
-		const auto swapchain = *reinterpret_cast<IDXGISwapChain3**>(OFFSET(offsets::swapChain));
-
-		if (swapchain)
+		if (const auto swapchain = *reinterpret_cast<IDXGISwapChain3**>(OFFSET(offsets::swapchain)))
 		{
 			swapchain_vmt.setup(swapchain);
 			swapchain_vmt.hook(8, present);

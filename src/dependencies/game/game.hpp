@@ -21,13 +21,13 @@ namespace game
 	inline uintptr_t relocate(const uintptr_t val)
 	{
 		const auto base = get_base();
-		return base + (val - 0x7FF6F3A20000);
+		return base + (val - offsets::dump_base);
 	}
 
 	inline uintptr_t derelocate(const uintptr_t val)
 	{
 		const auto base = get_base();
-		return (val - base) + 0x7FF6F3A20000;
+		return (val - base) + offsets::dump_base;
 	}
 
 	inline uintptr_t derelocate(const void* val)

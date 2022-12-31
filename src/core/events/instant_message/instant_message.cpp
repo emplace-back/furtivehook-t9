@@ -29,14 +29,10 @@ namespace events::instant_message
 			auto type{ 0ui8 };
 
 			if (msg.read<uint8_t>() == '2')
-			{
 				type = msg.read<uint8_t>();
-			}
 
 			if (log_messages)
-			{
 				PRINT_LOG("Received instant message '%c' of size [%u] from '%s' (%llu)", type, message_size, sender_name, sender_id);
-			}
 
 			const auto& callbacks = get_callbacks();
 			const auto handler = callbacks.find(type);
@@ -84,12 +80,11 @@ namespace events::instant_message
 				return false;
 
 			if (lobby_msg::log_messages)
-			{
 				PRINT_LOG("Received lobby message <%s> from '%s' (%llu)", game::LobbyTypes_GetMsgTypeName(msg.type), sender_name, sender_id);
-			}
 
 			if (msg.type == game::MESSAGE_TYPE_INFO_REQUEST)
 			{
+				PRINT_MESSAGE("Instant Message", "Received a info request from '%s' (%llu)", sender_name, sender_id);
 				return events::prevent_join;
 			}
 		

@@ -39,9 +39,7 @@ namespace events::lobby_msg
 			const auto type_name{ game::LobbyTypes_GetMsgTypeName(msg->type) };
 
 			if (log_messages)
-			{
 				PRINT_LOG("Received lobby message [%i] <%s> from %s", module, type_name, ip_str.data());
-			}
 
 			const auto& callbacks = get_callbacks();
 			const auto handler = callbacks.find({ module, msg->type });
@@ -52,7 +50,7 @@ namespace events::lobby_msg
 			return handler->second(from, *msg, module);
 		}
 
-		uint16_t __fastcall big_short(uint16_t value, uintptr_t* rsp, game::msg_t* msg, game::netadr_t* rsi)
+		uint16_t __fastcall big_short(uint16_t value, uintptr_t* rsp, game::msg_t* msg)
 		{
 			if (*(rsp + 16) == OFFSET(offsets::ret_msg_read_short))
 			{
@@ -60,9 +58,9 @@ namespace events::lobby_msg
 				
 				const std::vector<std::pair<uintptr_t, game::netadr_t>> addresses =
 				{
-					{ OFFSET(0x7FF6FEA758A8), *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 19) },
-					{ OFFSET(0x7FF6FEA75B4F), *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 41) },
-					{ OFFSET(0x7FF6FEA75CEF), {} },
+					{ OFFSET(offsets::ret_handle_packet_1), *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 19) },
+					{ OFFSET(offsets::ret_handle_packet_2), *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 41) },
+					{ OFFSET(offsets::ret_handle_packet_3), {} },
 				}; 
 
 				const auto result = std::find_if(addresses.begin(), addresses.end(), [&](const auto& address) { return address.first == retn_address; });
@@ -71,7 +69,7 @@ namespace events::lobby_msg
 				{
 					const auto msg_backup = *msg;
 
-					if (const auto header_size = msg->read<uint16_t>(); header_size == 0x97A)
+					if (const auto header = msg->read<uint16_t>(); header == 0x97A)
 					{
 						if (lobby_msg::handle_packet(result->second, msg))
 						{
@@ -90,11 +88,11 @@ namespace events::lobby_msg
 
 		int __fastcall big_long_read(int value, uintptr_t* rsp, game::msg_t* msg)
 		{
-			if (*(rsp + 16) == OFFSET(0x7FF6F994334F))
+			if (*(rsp + 16) == OFFSET(offsets::ret_msg_read_long))
 			{
 				const auto retn_address = *(rsp + 16 + 6);
 				
-				if (retn_address == OFFSET(0x7FF6FEEED87C))
+				if (retn_address == OFFSET(offsets::ret_lobby_msg_rw_package_int))
 				{
 					const auto* key = reinterpret_cast<const char*>(*(rsp + 16 + 6 - 1));
 
@@ -122,7 +120,6 @@ namespace events::lobby_msg
 		const auto big_short_stub = utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.pushad64();
-			a.lea(r9, qword_ptr(rsi));
 			a.lea(r8, qword_ptr(rbx));
 			a.lea(rdx, qword_ptr(rsp));
 			a.call_aligned(big_short);
@@ -143,7 +140,7 @@ namespace events::lobby_msg
 		scheduler::on_game_initialized([=]()
 		{
 			utils::hook::set(OFFSET(offsets::BigShort), big_short_stub);
-			utils::hook::set(OFFSET(0x7FF70DB83F10), big_long_read_stub);
+			utils::hook::set(OFFSET(offsets::BigLong), big_long_read_stub);
 		}, scheduler::pipeline::main);
 
 		lobby_msg::on_message(game::LOBBY_MODULE_CLIENT, game::MESSAGE_TYPE_LOBBY_HOST_DISCONNECT_CLIENT, lobby_msg::handle_host_disconnect_client);

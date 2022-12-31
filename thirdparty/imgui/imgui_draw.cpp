@@ -1776,7 +1776,7 @@ ImFont* ImFontAtlas::AddFontDefault(const ImFontConfig* font_cfg_template)
         font_cfg.PixelSnapH = true;
     }
 
-    font_cfg.SizePixels = 16.0f;
+    font_cfg.SizePixels = 15.0f;
 
     if (font_cfg.Name[0] == '\0')
         ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "GlacialIndifference-Regular.ttf, %dpx", (int)font_cfg.SizePixels);

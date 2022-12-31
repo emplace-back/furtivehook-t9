@@ -20,7 +20,7 @@ namespace game
 
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size)
 	{
-		const auto self = std::find_if(recipients.begin(), recipients.end(), [=](const auto& id) { return LiveUser_GetXuid(0) == id; });
+		const auto self = std::find_if(recipients.begin(), recipients.end(), [=](const auto& id) { return id == LiveUser_GetXuid(0); });
 
 		if(self == recipients.end())
 			return call(offsets::dwInstantSendMessage, 0, recipients.data(), recipients.size(), type, message, message_size);
@@ -35,7 +35,7 @@ namespace game
 			msg.write<uint8_t>(type);
 			msg.write_data(reinterpret_cast<const char*>(message), message_size);
 
-			return events::instant_message::on_global_instant_message(*reinterpret_cast<uintptr_t**>(lobby + 0x750), *self, "daddy", msg.data, msg.cursize);
+			return events::instant_message::on_global_instant_message(*reinterpret_cast<uintptr_t**>(lobby + 0x750), *self, "zaddy", msg.data, msg.cursize);
 		}
 	}
 
