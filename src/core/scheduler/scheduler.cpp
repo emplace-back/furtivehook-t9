@@ -144,7 +144,7 @@ namespace scheduler
 			a.popad64(true);
 			a.ret();
 		}); 
-		
+
 		time_get_time_hook.create(::timeGetTime, time_get_time_stub);
 	}
 }

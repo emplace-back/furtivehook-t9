@@ -253,7 +253,7 @@ namespace menu
 					ImGui::SetNextItemWidth(width * 0.85f);
 					ImGui::InputTextWithHint("##target_steam_id", "Steam ID", &target_steam_id);
 
-					const auto target_id{ std::strtoull(target_steam_id.data(), nullptr, 10)};
+					const auto target_id{ std::strtoull(target_steam_id.data(), nullptr, 10) };
 
 					if (ImGui::MenuItem("Send popup", nullptr, nullptr, target_id && !target_steam_id.empty()))
 					{

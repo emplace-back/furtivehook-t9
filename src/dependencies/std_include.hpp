@@ -40,6 +40,7 @@
 
 #include <utils/asmjit/core/jitruntime.h>
 #include <utils/asmjit/x86/x86assembler.h>
+#include "../thirdparty/nlohmann/json.hpp"
 #include "../thirdparty/minhook/MinHook.h"
 #include "../thirdparty/imgui/imgui.h"
 #include "../thirdparty/imgui/imgui_internal.h"
@@ -56,6 +57,7 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
+using json = nlohmann::json;
 using namespace std::literals;
 using namespace std::chrono_literals;
 
