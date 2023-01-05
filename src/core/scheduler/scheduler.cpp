@@ -69,14 +69,11 @@ namespace scheduler
 
 	DWORD __stdcall time_get_time(uintptr_t* rsp)
 	{
-		if (*(rsp + 16) == OFFSET(offsets::ret_sys_ms))
-		{
-			const auto retn_address = *(rsp + 16 + 6);
+		const auto ret_address = *(rsp + 16 + 6);
 
-			if (retn_address == OFFSET(offsets::ret_com_frame))
-			{
-				scheduler::execute(scheduler::pipeline::main); 
-			}
+		if (ret_address == OFFSET(offsets::ret_com_frame))
+		{
+			scheduler::execute(scheduler::pipeline::main);
 		}
 
 		return time_get_time_hook.call<DWORD>();

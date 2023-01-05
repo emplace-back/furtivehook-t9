@@ -79,6 +79,7 @@ using namespace std::chrono_literals;
 #include "core/menu/menu.hpp"
 #include "core/input/input.hpp"
 #include "core/exception/exception.hpp"
+#include "core/exception/dvars.hpp"
 #include "core/scheduler/scheduler.hpp"
 #include "core/rendering/rendering.hpp"
 #include "core/rendering/dx.hpp"

@@ -244,7 +244,7 @@ namespace game
 		char pad[0x358];
 		FixedClientInfo fixedClientInfo;
 		char pad2[0x60];
-		SessionInfo sessionInfo[2];
+		SessionInfo sessionInfo[3];
 	};
 
 	struct SessionClient
@@ -252,6 +252,7 @@ namespace game
 		char pad[0x10];
 		uint64_t xuid;
 		ActiveClient* activeClient;
+		char pad2[0x20];
 	};
 
 	struct LobbySession
@@ -261,11 +262,13 @@ namespace game
 		int mode;
 		char pad[0x34];
 		SessionActive active;
-		char pad2[0x1258C];
+		char pad2[0x148];
+		SessionClient clients[18];
+		char pad3[0x11FC0];
+	};
 
-		auto get_client(const size_t index) const
-		{
-			return *reinterpret_cast<SessionClient*>(reinterpret_cast<uintptr_t>(this) + (index << 6) + 0x190);
-		}
+	struct PresenceData
+	{
+		char pad[0x360];
 	};
 }

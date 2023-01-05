@@ -9,35 +9,38 @@ namespace exception
 	
 	namespace
 	{
-		bool is_exception_in_game_module(const uintptr_t address, const uintptr_t base)
-		{
-			utils::nt::library self{};
-			return address >= base && address < base - 0x1000 + self.get_nt_headers()->OptionalHeader.SizeOfImage;
-		}
-		
 		bool handle_exception(PEXCEPTION_POINTERS ex)
 		{
 			const auto code = ex->ExceptionRecord->ExceptionCode;
 			const auto addr = ex->ContextRecord->Rip;
 			const auto base = game::get_base();
 
-			if (!ex->ExceptionRecord->ExceptionInformation[0])
+			if (utils::nt::is_shutdown_in_progress())
+				return false;
+			
+			if (code == STATUS_ILLEGAL_INSTRUCTION || code == STATUS_PRIVILEGED_INSTRUCTION || code < STATUS_ACCESS_VIOLATION || code == 0xe06d7363)
 				return false;
 
-			if (code < STATUS_ACCESS_VIOLATION || code == 0xE06D7363)
+			if (ex->ExceptionRecord->NumberParameters > 1 && ex->ExceptionRecord->ExceptionInformation[1] == 0xFFFFFFFFFFFFFFFF)
 				return false;
+
+			if (dvars::handle_exception(ex))
+				return true;
 
 			const std::lock_guard<std::mutex> _(exception_mutex);
 
-			std::string message;
+			const auto game = utils::nt::library{};
+			const auto source_module = utils::nt::library::get_by_address(reinterpret_cast<void*>(addr));
 
-			if (is_exception_in_game_module(addr, base))
+			std::string message;
+			
+			if (source_module == game)
 			{
 				message = utils::string::va("Exception: 0x%08X at 0x%llX", code, game::derelocate(addr));
 			}
 			else
 			{
-				message = utils::string::va("Exception: 0x%08X at 0x%llX (outside of game module)", code, addr);
+				message = utils::string::va("Exception: 0x%08X at 0x%llX (outside of game module) %s", code, addr, source_module.get_name().data());
 			}
 
 			PRINT_LOG("%s", message.data());
@@ -56,16 +59,14 @@ namespace exception
 		{
 			if (_ReturnAddress() == ret_rtl_dispatch_exception_ptr)
 			{
-				EXCEPTION_POINTERS pex
-				{
-					ex,
-					ctx
+				auto& pex = EXCEPTION_POINTERS
+				{ 
+					ex, 
+					ctx 
 				};
 
 				if (exception::handle_exception(&pex))
-				{
 					return true;
-				}
 			}
 
 			return rtl_dispatch_exception_hook.call<bool>(ex, ctx);
@@ -81,5 +82,7 @@ namespace exception
 			return;
 
 		rtl_dispatch_exception_hook.create(rtl_dispatch_exception_ptr, rtl_dispatch_exception);
+
+		dvars::initialize();
 	}
 }

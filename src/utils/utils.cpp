@@ -28,7 +28,7 @@ namespace utils
 
 		if (const auto client_num = game::find_target_from_addr(session, from); client_num >= 0)
 		{
-			const auto client = session->get_client(client_num).activeClient;
+			const auto client = session->clients[client_num].activeClient;
 			return utils::string::va("'%s' (%llu) %s", client->fixedClientInfo.gamertag, client->fixedClientInfo.xuid, ip_str.data());
 		}
 		else

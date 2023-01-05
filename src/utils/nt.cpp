@@ -77,7 +77,6 @@ namespace utils::nt
 		for (uint16_t i = 0; i < nt_headers->FileHeader.NumberOfSections; ++i, ++section)
 		{
 			if (section) headers.push_back(section);
-			else OutputDebugStringA("There was an invalid section :O");
 		}
 
 		return headers;

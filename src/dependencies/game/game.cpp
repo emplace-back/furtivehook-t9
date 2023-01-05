@@ -66,7 +66,7 @@ namespace game
 
 		for (size_t i = 0; i < 18; ++i)
 		{
-			if (const auto client = session->get_client(i).activeClient; client)
+			if (const auto client = session->clients[i].activeClient; client)
 			{
 				const auto netadr = client->sessionInfo[session->type].netAdr;
 				if (from == netadr)
