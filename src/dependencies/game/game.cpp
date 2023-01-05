@@ -80,14 +80,25 @@ namespace game
 		return -1;
 	}
 
-	void Cmd_ExecuteSingleCommand(const std::string& data)
+	void Cbuf_AddText(const char* text)
 	{
-		char buffer[0x1000] = { 0 };
-		game::msg_t msg{};
+		struct CmdText
+		{
+			char data[0x1F400];
+			int maxsize;
+			int cmdsize;
+		};
 
-		msg.init(buffer, sizeof(buffer));
-		msg.write_data(data);
+		const auto cmd_text_buf = reinterpret_cast<CmdText*>(OFFSET(offsets::cmd_text_buf));
+		const auto length = std::strlen(text);
 
-		return game::call(offsets::dwInstantHandleRemoteCommand, 0, 0, &msg);
+		if (!cmd_text_buf)
+			return;
+
+		if (cmd_text_buf->cmdsize + length < cmd_text_buf->maxsize)
+		{
+			std::memcpy(&cmd_text_buf->data[cmd_text_buf->cmdsize], text, length + 1);
+			cmd_text_buf->cmdsize += length;
+		}
 	}
 }

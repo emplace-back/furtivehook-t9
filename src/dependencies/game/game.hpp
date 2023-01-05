@@ -16,7 +16,7 @@ namespace game
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const msg_t& msg);
 	const char* LobbyTypes_GetMsgTypeName(const MsgType type);
 	int find_target_from_addr(const LobbySession* session, const netadr_t& from);
-	void Cmd_ExecuteSingleCommand(const std::string& data);
+	void Cbuf_AddText(const char* text);
 	
 	inline uintptr_t relocate(const uintptr_t val)
 	{
