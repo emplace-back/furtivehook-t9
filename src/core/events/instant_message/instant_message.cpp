@@ -52,6 +52,17 @@ namespace events::instant_message
 		}
 	}
 	
+	void send_info_request(const std::vector<std::uint64_t>& recipients, const uint32_t nonce)
+	{
+		char buffer[0x80] = { 0 };
+		game::msg_t msg{};
+
+		msg.init_lobby(buffer, game::MESSAGE_TYPE_INFO_REQUEST);
+		msg.write_lobby<uint32_t>(nonce, 1);
+
+		game::send_instant_message(recipients, 'h', msg);
+	}
+	
 	void initialize()
 	{
 		instant_message::on_message('e', [=](auto& msg, const auto& sender_name, const auto& sender_id)
@@ -87,7 +98,39 @@ namespace events::instant_message
 				PRINT_MESSAGE("Instant Message", "Received a info request from '%s' (%llu)", sender_name, sender_id);
 				return events::prevent_join;
 			}
-		
+			else if (msg.type == game::MESSAGE_TYPE_INFO_RESPONSE)
+			{
+				game::Msg_InfoResponse response{};
+				
+				if (!game::call<bool>(0x7FF6FDB34800, &response, &msg))
+					return false;
+
+				if (response.nonce != friends::NONCE)
+					return false;
+
+				std::vector<uint64_t> sender_xuids{ sender_id };
+
+				for (size_t i = 0; i < std::size(response.lobby); ++i)
+				{
+					const auto lobby = response.lobby[i];
+					if (lobby.isValid)
+					{
+						sender_xuids.push_back(lobby.hostXuid);
+					}
+				}
+
+				for (const auto& id : sender_xuids)
+				{
+					if (const auto f = friends::get(id))
+					{
+						f->last_online = std::time(nullptr);
+						f->response = response;
+					}
+				}
+
+				friends::write();
+			}
+			
 			return false;
 		});
 

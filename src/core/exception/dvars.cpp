@@ -67,19 +67,5 @@ namespace exception::dvars
 				}
 			}
 		});
-
-		dvars::register_hook(hook_dvar::update_presence, OFFSET(0x7FF7057705B0),
-			[](auto& ctx)
-		{
-			if (events::no_presence)
-			{
-				// clean up Dvar_GetBool
-				ctx.Rsp += 0x48;
-				ctx.Rsp += sizeof(uint64_t); // retaddr
-
-				*reinterpret_cast<game::PresenceData*>(OFFSET(0x7FF7073A6A60)) = {};
-				ctx.Rip = OFFSET(0x7FF6FE874AAE);
-			}
-		});
 	}
 }

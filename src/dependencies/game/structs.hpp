@@ -116,14 +116,32 @@ namespace game
 		int maxsize;
 		int cursize;
 		int readcount;
-		char pad[0x21];
+		char pad[0x18];
+		int bit;
+		char pad2[0x5];
 		bool overflowed;
 		bool readOnly;
-		char pad2[0x8];
+		char pad3[0x8];
 		MsgType type;
 		PackageType packageType;
 		char encodeFlags;
 
+		template<size_t buf_size>
+		void init_lobby(char(&buf)[buf_size], const MsgType msg_type)
+		{
+			this->init(buf, buf_size);
+
+			this->packageType = PACKAGE_TYPE_WRITE;
+			this->type = msg_type;
+			this->encodeFlags = 0;
+
+			this->write_bits(0, 2);
+			this->write<uint8_t>(5);
+			this->write<uint8_t>(msg_type);
+			this->write<uint8_t>(11);
+			this->write_data("sike");
+		}
+		
 		void init(char* buffer, const size_t buf_size, const bool read = false)
 		{
 			*this = {};
@@ -136,7 +154,31 @@ namespace game
 				cursize = buf_size;
 			}
 		}
+		
+		template<typename T> void write_lobby(T value, const uint8_t element_type)
+		{
+			if (packageType != PACKAGE_TYPE_WRITE)
+				return;
 
+			this->write<uint8_t>(element_type);
+			this->write<T>(value);
+		}
+		
+		template<typename T> void write(T value)
+		{
+			const auto final_size = cursize + sizeof(value);
+
+			if (final_size > maxsize)
+			{
+				overflowed = 1;
+			}
+			else
+			{
+				*reinterpret_cast<T*>(&data[cursize]) = value;
+				cursize = final_size;
+			}
+		}
+		
 		void write_data(const std::string& buffer)
 		{
 			return write_data(buffer.data(), buffer.size() + 1);
@@ -157,18 +199,35 @@ namespace game
 			}
 		}
 
-		template<typename T> void write(T value)
+		void write_bits(int value, int bits)
 		{
-			const auto final_size = cursize + sizeof(value);
+			if (static_cast<uint32_t>(bits) > 0x20)
+				return;
 
-			if (final_size > maxsize)
+			if (maxsize - cursize < 4)
 			{
 				overflowed = 1;
 			}
 			else
 			{
-				*reinterpret_cast<T*>(&data[cursize]) = value;
-				cursize = final_size;
+				while (bits)
+				{
+					--bits;
+
+					const auto b = bit & 7;
+
+					if (!b)
+					{
+						bit = sizeof(uint64_t) * cursize;
+						data[++cursize] = 0;
+					}
+
+					if ((value & 1) != 0)
+						data[bit >> 3] |= 1 << b;
+
+					++bit;
+					value >>= 1;
+				}
 			}
 		}
 
@@ -223,6 +282,22 @@ namespace game
 		}
 	};
 #pragma pack(pop)
+
+	struct SerializedAdr
+	{
+		bool valid;
+		XNADDR xnaddr;
+	}; 
+	
+	struct bdSecurityID
+	{
+		uint64_t id;
+	};
+
+	struct bdSecurityKey
+	{
+		char ab[16];
+	}; 
 	
 	struct SessionInfo
 	{
@@ -230,6 +305,12 @@ namespace game
 		netadr_t netAdr;
 		time_t lastMessageSentToPeer;
 	}; 
+
+	struct LobbyParams
+	{
+		int networkMode;
+		int mainMode;
+	};
 	
 	struct FixedClientInfo
 	{
@@ -267,8 +348,23 @@ namespace game
 		char pad3[0x11FC0];
 	};
 
-	struct PresenceData
+	struct InfoResponseLobby
 	{
-		char pad[0x360];
+		bool isValid;
+		uint64_t hostXuid;
+		char hostName[36];
+		char pad[0x20 - 7];
+		XNADDR xnaddr;
+		int status;
+		LobbyParams lobbyParams;
+	};
+
+	struct Msg_InfoResponse
+	{
+		uint32_t nonce;
+		int uiScreen;
+		int playlistID;
+		uint8_t natType;
+		InfoResponseLobby lobby[3];
 	};
 }

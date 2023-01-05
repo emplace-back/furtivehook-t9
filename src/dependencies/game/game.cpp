@@ -20,6 +20,9 @@ namespace game
 
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size)
 	{
+		if (!game::Live_IsUserSignedInToDemonware(0))
+			return;
+		
 		const auto self = std::find_if(recipients.begin(), recipients.end(), [=](const auto& id) { return id == LiveUser_GetXuid(0); });
 
 		if(self == recipients.end())
