@@ -4,7 +4,6 @@
 namespace exception
 {
 	utils::hook::detour rtl_dispatch_exception_hook; 
-	uint8_t* call_rtl_dispatch_exception_ptr{};
 	std::mutex exception_mutex;
 	
 	namespace
@@ -57,7 +56,8 @@ namespace exception
 
 		bool __stdcall rtl_dispatch_exception(PEXCEPTION_RECORD ex, PCONTEXT ctx)
 		{
-			if (_ReturnAddress() == call_rtl_dispatch_exception_ptr + 5)
+			// KiUserExceptionDispatcher
+			if ((*reinterpret_cast<uint64_t*>(_ReturnAddress()) & 0xFFFFFFFFFFFFFF) == 0xCC8B480C74C084)
 			{
 				auto& pex = EXCEPTION_POINTERS
 				{ 
@@ -75,12 +75,12 @@ namespace exception
 
 	void initialize()
 	{
-		call_rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::call_rtl_dispatch_exception_ptr);
+		const auto call_rtl_dispatch_exception_ptr = utils::nt::library("ntdll.dll").get_proc<uint8_t*>("KiUserExceptionDispatcher");
 
 		if (!call_rtl_dispatch_exception_ptr)
 			return;
 
-		rtl_dispatch_exception_hook.create(utils::hook::extract(call_rtl_dispatch_exception_ptr + 1), rtl_dispatch_exception);
+		rtl_dispatch_exception_hook.create(utils::hook::extract(call_rtl_dispatch_exception_ptr + 0x29 + 1), rtl_dispatch_exception);
 
 		dvars::initialize();
 	}

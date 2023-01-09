@@ -28,14 +28,19 @@ namespace utils::io
 		return std::filesystem::create_directories(directory);
 	}
 
-	bool remove_file(const std::string& file)
+	bool remove_file(const std::filesystem::path& file)
 	{
-		return DeleteFileA(file.data()) == TRUE;
+		if (DeleteFileW(file.wstring().data()) != FALSE)
+		{
+			return true;
+		}
+
+		return GetLastError() == ERROR_FILE_NOT_FOUND;
 	}
 
-	bool move_file(const std::string& src, const std::string& target)
+	bool move_file(const std::filesystem::path& src, const std::filesystem::path& target)
 	{
-		return MoveFileA(src.data(), target.data()) == TRUE;
+		return MoveFileW(src.wstring().data(), target.wstring().data()) == TRUE;
 	}
 	
 	bool file_exists(const std::string& file)
