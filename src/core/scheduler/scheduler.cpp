@@ -69,9 +69,8 @@ namespace scheduler
 
 	DWORD __stdcall time_get_time(uintptr_t* rsp)
 	{
-		const auto ret_address = *(rsp + 16 + 6);
-
-		if (ret_address == OFFSET(offsets::ret_com_frame))
+		// Com_Frame_Try_Block_Function
+		if ((*reinterpret_cast<uint64_t*>(*(rsp + 16 + 6)) & 0xFFFFFFFFFF) == 0x828D0FC73B)
 		{
 			scheduler::execute(scheduler::pipeline::main);
 		}

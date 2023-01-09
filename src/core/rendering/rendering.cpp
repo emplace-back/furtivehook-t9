@@ -28,11 +28,20 @@ namespace rendering
 	
 	void initialize()
 	{
-		if (const auto swapchain = *reinterpret_cast<IDXGISwapChain3**>(OFFSET(offsets::swapchain)))
+		const auto swapchain_ptr = utils::hook::scan_pattern(signatures::swapchain_ptr);
+
+		if (!swapchain_ptr)
+			return; 
+		
+		const auto swapchain = *utils::hook::extract<IDXGISwapChain3**>(swapchain_ptr + 3);
+
+		if (!swapchain)
 		{
-			swapchain_vmt.setup(swapchain);
-			swapchain_vmt.hook(8, present);
-			swapchain_vmt.hook(13, resize_buffers);
+			return;
 		}
+
+		swapchain_vmt.setup(swapchain);
+		swapchain_vmt.hook(8, present);
+		swapchain_vmt.hook(13, resize_buffers);
 	}
 }

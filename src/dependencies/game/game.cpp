@@ -3,6 +3,17 @@
 
 namespace game
 {
+	namespace net
+	{
+		namespace oob
+		{
+			bool send(const netadr_t& netadr, const std::string& data)
+			{
+				return game::call<bool>(offsets::NET_OutOfBandData, game::NS_SERVER, netadr, data.data(), data.size());
+			}
+		}
+	}
+	
 	void initialize()
 	{
 		exception::initialize();
@@ -95,10 +106,10 @@ namespace game
 		if (!cmd_text_buf)
 			return;
 
-		if (cmd_text_buf->cmdsize + length < cmd_text_buf->maxsize)
-		{
-			std::memcpy(&cmd_text_buf->data[cmd_text_buf->cmdsize], text, length + 1);
-			cmd_text_buf->cmdsize += length;
-		}
+		if (cmd_text_buf->cmdsize + length >= cmd_text_buf->maxsize)
+			return;
+
+		std::memcpy(&cmd_text_buf->data[cmd_text_buf->cmdsize], text, length + 1);
+		cmd_text_buf->cmdsize += length;
 	}
 }

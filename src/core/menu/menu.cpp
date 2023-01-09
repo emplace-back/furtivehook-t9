@@ -96,6 +96,7 @@ namespace menu
 	void toggle()
 	{
 		open = !open;
+		game::call(offsets::IN_Activate, !open);
 	}
 
 	bool begin_section(const std::string& text)
@@ -135,7 +136,7 @@ namespace menu
 
 			for (const auto& client_num : indices)
 			{
-				const auto target_client = session->get_client(client_num).activeClient;
+				const auto target_client = session->clients[client_num].activeClient;
 
 				if (target_client)
 				{
@@ -182,7 +183,8 @@ namespace menu
 						game::XNADDR xn;
 						game::dwNetadrToCommonAddr(netadr, &xn, sizeof xn, nullptr);
 
-						const auto ip_string = xn.to_string();
+						const auto is_netadr_valid = netadr.inaddr && netadr.type != game::NA_BAD;
+						const auto ip_string = is_netadr_valid ? xn.to_string() : "Invalid IP Data";
 
 						if (ImGui::MenuItem(ip_string))
 						{
@@ -195,7 +197,7 @@ namespace menu
 						{
 							if (ImGui::MenuItem("Disconnect client from lobby"))
 							{
-								game::call(0x7FF6FE192890, 0, session->type, player_xuid, 2);
+								game::call(0x7FF7DA635AF0, 0, session->type, player_xuid, 2);
 							}
 							
 							ImGui::EndMenu();
@@ -242,7 +244,7 @@ namespace menu
 					ImGui::Checkbox("Log instant messages", &events::instant_message::log_messages);
 					ImGui::Checkbox("Log lobby messages", &events::lobby_msg::log_messages); 
 					ImGui::Checkbox("Prevent join", &events::prevent_join);
-					
+					ImGui::Checkbox("Don't update presence", &events::no_presence);
 					ImGui::EndTabItem();
 				}
 
@@ -257,22 +259,7 @@ namespace menu
 
 					if (ImGui::MenuItem("Send popup", nullptr, nullptr, target_id && !target_steam_id.empty()))
 					{
-						/*if (const auto clc = *reinterpret_cast<uintptr_t*>(OFFSET(0x7FF703CE4028)))
-						{
-							auto data{ "LM\n"s };
-							const auto header{ 0x97Aui16 };
-							data.append(reinterpret_cast<const char*>(&header), sizeof header);
-							data.push_back(69);
-							data.push_back(-1);
-
-							game::call(0x7FF6FD6F7320, 4, *reinterpret_cast<game::netadr_t*>(clc + 16), data.data(), data.size());
-						}*/
-
-						scheduler::once([=]()
-						{
-							const auto message{ 0 };
-							game::send_instant_message({ target_id }, 'f', &message, sizeof message);
-						});
+						events::instant_message::send_info_request({ target_id }, 1);
 					}
 					
 					ImGui::EndTabItem();
@@ -289,24 +276,24 @@ namespace menu
 
 						ImGui::SameLine();
 
-						if (ImGui::Button("Execute##execute_command", { 64.0f, 0.0f }))
+						if (ImGui::Button("Execute##execute_command", { -1, 0.0f }))
 						{
-							game::Cmd_ExecuteSingleCommand(command_input);
+							command::execute(command_input);
 						}
 					}
 
-					if (begin_section("Execute reliable command"))
+					if (begin_section("Join game via ID"))
 					{
-						static auto reliable_command_input = ""s;
+						static auto id_input = ""s;
 
 						ImGui::SetNextItemWidth(width * 0.85f);
-						ImGui::InputTextWithHint("##reliable_command_input", "Reliable Command", &reliable_command_input);
+						ImGui::InputTextWithHint("##id_input", "ID", &id_input);
 
 						ImGui::SameLine();
 
-						if (ImGui::Button("Execute##execute_reliable_command", { 64.0f, 0.0f }))
+						if (ImGui::Button("Join##join_via_id", { -1, 0.0f }))
 						{
-							game::CL_AddReliableCommand(0, reliable_command_input.data());
+							command::execute("join " + id_input);
 						}
 					}
 					
@@ -314,6 +301,7 @@ namespace menu
 				}
 
 				menu::draw_player_list(width, spacing);
+				friends::draw_friends_list(width, spacing);
 			}
 		}
 	}

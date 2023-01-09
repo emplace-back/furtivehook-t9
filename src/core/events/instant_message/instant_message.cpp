@@ -82,7 +82,7 @@ namespace events::instant_message
 			const auto length{ msg.cursize - msg.readcount }; 
 		
 			char buffer[2048] = { 0 };
-			game::call(offsets::MSG_ReadData, &msg, buffer, sizeof buffer, length);
+			msg.read_data(buffer, sizeof buffer, length);
 
 			if (msg.overflowed)
 				return false;
@@ -102,7 +102,7 @@ namespace events::instant_message
 			{
 				game::Msg_InfoResponse response{};
 				
-				if (!game::call<bool>(0x7FF6FDB34800, &response, &msg))
+				if (!game::call<bool>(offsets::InfoResponse, &response, &msg))
 					return false;
 
 				if (response.nonce != friends::NONCE)
@@ -129,6 +129,8 @@ namespace events::instant_message
 				}
 
 				friends::write();
+
+				return true;
 			}
 			
 			return false;

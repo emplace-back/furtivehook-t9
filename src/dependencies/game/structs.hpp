@@ -248,6 +248,20 @@ namespace game
 
 			return result;
 		}
+
+		void read_data(void* buffer, const size_t max_size, const size_t length)
+		{
+			if (length > max_size || readcount + length > cursize)
+			{
+				overflowed = 1;
+				std::memset(data, 0xff, max_size);
+			}
+			else
+			{
+				std::memcpy(buffer, &data[readcount], length);
+				readcount += length;
+			}
+		}
 	};
 
 	struct netadr_t
@@ -282,22 +296,24 @@ namespace game
 		}
 	};
 #pragma pack(pop)
-
-	struct SerializedAdr
-	{
-		bool valid;
-		XNADDR xnaddr;
-	}; 
 	
+#pragma pack(push, 1)
 	struct bdSecurityID
 	{
 		uint64_t id;
 	};
+#pragma pack(pop)
 
 	struct bdSecurityKey
 	{
 		char ab[16];
 	}; 
+
+	struct SerializedAdr
+	{
+		bool valid;
+		XNADDR xnaddr;
+	};
 	
 	struct SessionInfo
 	{
@@ -341,7 +357,7 @@ namespace game
 		LobbyModule module;
 		LobbyType type;
 		int mode;
-		char pad[0x34];
+		char pad[0x38];
 		SessionActive active;
 		char pad2[0x148];
 		SessionClient clients[18];
@@ -353,8 +369,9 @@ namespace game
 		bool isValid;
 		uint64_t hostXuid;
 		char hostName[36];
-		char pad[0x20 - 7];
-		XNADDR xnaddr;
+		bdSecurityID secId;
+		bdSecurityKey secKey;
+		SerializedAdr serializedAdr;
 		int status;
 		LobbyParams lobbyParams;
 	};

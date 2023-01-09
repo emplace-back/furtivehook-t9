@@ -76,6 +76,7 @@ using namespace std::chrono_literals;
 
 
 #include "core/misc/misc.hpp"
+#include "core/command/command.hpp"
 #include "core/friends/friends.hpp"
 #include "core/menu/menu.hpp"
 #include "core/input/input.hpp"

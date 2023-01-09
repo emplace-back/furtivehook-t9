@@ -2,26 +2,20 @@
 
 namespace offsets
 {
-	constexpr auto dump_base = 0x7FF6F3A20000;
-	constexpr auto jmp_qword_ptr_rbx = 0x7FF7126B12AF;
-	constexpr auto swapchain = 0x7FF70AFEDD58;
+	constexpr auto dump_base = 0x7FF7D0110000;
+	constexpr auto jmp_qword_ptr_rbx = 0x7FF7EB3AC102;
 	
-	constexpr auto BigLong = 0x7FF70DB83F10;
-	constexpr auto MSG_ReadData = 0x7FF6F99341C0;
-	constexpr auto CL_AddReliableCommand = 0x7FF6F96BAFA0;
-	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF6FD1CA300;
-	constexpr auto Live_GetXuid = 0x7FF7006358D0;
-	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF6FEEEDD20;
-	constexpr auto dwGetLobby = 0x7FF6FE8A34A0;
-	constexpr auto dwNetadrToCommonAddr = 0x7FF6FE9F1F30;
-	constexpr auto dwInstantSendMessage = 0x7FF6FE873070;
+	constexpr auto IN_Activate = 0x7FF7DCCCB2C0;
+	constexpr auto NET_OutOfBandData = 0x7FF7D9BD28D0;
+	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF7D96BF190;
+	constexpr auto Live_GetXuid = 0x7FF7DC9F1E80;
+	constexpr auto InfoResponse = 0x7FF7DA003F70;
+	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF7DB326B50;
+	constexpr auto dwGetLobby = 0x7FF7DAD00190;
+	constexpr auto dwNetadrToCommonAddr = 0x7FF7DAE42DF0;
+	constexpr auto dwInstantSendMessage = 0x7FF7DACD0F80;
 	
-	constexpr auto s_lobbyMsgName = 0x7FF701D63180;
-	constexpr auto s_clientSession = 0x7FF706FBA550;
-	constexpr auto cmd_text_buf = 0x7FF705C12D10;
-	constexpr auto lobbymsg_prints = 0x7FF709B3E7E8;
-	
-	constexpr auto ret_com_frame = 0x7FF6FB0C1B55;
-	constexpr auto ret_handle_packet_internal = 0x7FF6FEA759DE;
-	constexpr auto ret_lobby_msg_rw_package_int = 0x7FF6FEEED87C;
+	constexpr auto s_lobbyMsgName = 0x7FF7DE121840;
+	constexpr auto s_clientSession = 0x7FF7E3362AD0;
+	constexpr auto cmd_text_buf = 0x7FF7E1FBB250;
 }

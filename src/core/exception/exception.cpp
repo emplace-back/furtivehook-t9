@@ -75,8 +75,8 @@ namespace exception
 
 	void initialize()
 	{
-		auto rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", "40 55 56 57 41 54 41 55 41 56 41 57 48 81 EC D0");
-		ret_rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", "84 C0 74 0C 48 8B CC");
+		auto rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::rtl_dispatch_exception_ptr);
+		ret_rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::ret_rtl_dispatch_exception_ptr);
 
 		if (!rtl_dispatch_exception_ptr)
 			return;

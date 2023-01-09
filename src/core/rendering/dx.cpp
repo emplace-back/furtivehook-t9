@@ -101,8 +101,6 @@ namespace rendering::dx
 	{
 		if (dx::initialized)
 		{
-			ImGui::GetIO().MouseDrawCursor = menu::open;
-
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();

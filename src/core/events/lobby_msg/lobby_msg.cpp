@@ -29,18 +29,24 @@ namespace events::lobby_msg
 
 		int __fastcall big_long_read(int value, uintptr_t* rsp, game::msg_t* msg)
 		{
-			const auto ret_address = *(rsp + 16 + 6);
+			static uint8_t* ret_lobby_msg_rw_package_int{};
 
-			if (ret_address == OFFSET(offsets::ret_lobby_msg_rw_package_int))
+			if (!ret_lobby_msg_rw_package_int)
+			{
+				ret_lobby_msg_rw_package_int = utils::hook::scan_pattern(signatures::ret_lobby_msg_rw_package_int) + 0x7C;
+			}
+
+			if (reinterpret_cast<uint8_t*>(*(rsp + 16 + 6)) == ret_lobby_msg_rw_package_int)
 			{
 				const auto* key = reinterpret_cast<const char*>(*(rsp + 16 + 6 - 1));
 
 				const std::vector<std::pair<std::string, uint32_t>> patches =
 				{
-					{ "lobbytype", 3 },
+					{ "lobbytype", 2 },
+					{ "clientcount", 18 },
 				};
 
-				const auto result = std::any_of(patches.begin(), patches.end(), [&](const auto& p) { return p.first == key && value >= p.second; });
+				const auto result = std::any_of(patches.begin(), patches.end(), [&](const auto& p) { return p.first == key && static_cast<uint32_t>(value) > p.second; });
 
 				if (result)
 				{
@@ -72,6 +78,11 @@ namespace events::lobby_msg
 	
 	void initialize()
 	{
+		const auto biglong_ptr = utils::hook::scan_pattern(signatures::biglong_ptr);
+
+		if (!biglong_ptr)
+			return; 
+
 		const auto big_long_read_stub = utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.pushad64();
@@ -84,10 +95,9 @@ namespace events::lobby_msg
 
 		scheduler::loop([=]()
 		{
-			if (const auto biglong = reinterpret_cast<uintptr_t**>(OFFSET(offsets::BigLong)); 
+			if (const auto biglong = utils::hook::extract<uintptr_t**>(utils::hook::extract<uint8_t*>(biglong_ptr + 1) + 3);
 				biglong && *biglong != big_long_read_stub)
 			{
-				DEBUG_LOG("Hooking BigLong");
 				utils::hook::set(biglong, big_long_read_stub);
 			}
 		}, scheduler::pipeline::main);

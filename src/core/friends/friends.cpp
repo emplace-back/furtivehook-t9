@@ -214,7 +214,7 @@ namespace friends
 				if (!filter.PassFilter(f.name))
 					continue;
 				
-				const auto xuid = std::to_string(static_cast<int64_t>(f.id));
+				const auto xuid = std::to_string(f.id);
 				const auto label = f.name + "##friend" + xuid;
 				
 				ImGui::AlignTextToFramePadding(); 
@@ -232,7 +232,7 @@ namespace friends
 
 					if (ImGui::MenuItem("Remove"))
 					{
-						remove(f.id);
+						friends::remove(f.id);
 					}
 					
 					if (ImGui::BeginMenu("Rename##" + xuid))
@@ -257,29 +257,43 @@ namespace friends
 					const auto response = f.response;
 					const auto party_session = response.lobby[0];
 					const auto lobby_session = response.lobby[1];
+					game::netadr_t party_netadr{};
 					
 					if (party_session.isValid)
 					{
 						ImGui::Separator();
 
-						auto message{ "Party: " + party_session.xnaddr.to_string() };
+						auto message{ "Party: " + party_session.serializedAdr.xnaddr.to_string() };
 						message.append(" - "s + party_session.hostName + " (" + std::to_string(party_session.hostXuid) + ")");
-						
-						ImGui::MenuItem(message);
+
+						if (ImGui::MenuItem(message))
+						{
+							ImGui::LogToClipboardUnformatted(message);
+						}
 					}
 
 					if (lobby_session.isValid && lobby_session.hostXuid != f.id)
 					{
-						const auto message{ "Session: " + lobby_session.xnaddr.to_string() };
-						ImGui::MenuItem(message);
+						const auto message{ "Session: " + party_session.serializedAdr.xnaddr.to_string() };
+						
+						if (ImGui::MenuItem(message))
+						{
+							ImGui::LogToClipboardUnformatted(message);
+						}
 					}
 					
 					ImGui::Separator();
 
 					if (ImGui::MenuItem("Join session"))
 					{
-						//command::execute("join " + xuid);
+						command::execute("join " + xuid);
 					}
+
+					ImGui::Separator();
+
+					const auto is_ready{ f.is_online() && party_netadr.inaddr };
+
+					if (ImGui::MenuItem("Test", nullptr, nullptr, is_ready)) {}
 
 					ImGui::EndPopup();
 				}
