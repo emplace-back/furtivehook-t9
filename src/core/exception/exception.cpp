@@ -4,7 +4,7 @@
 namespace exception
 {
 	utils::hook::detour rtl_dispatch_exception_hook; 
-	uint8_t* ret_rtl_dispatch_exception_ptr{};
+	uint8_t* call_rtl_dispatch_exception_ptr{};
 	std::mutex exception_mutex;
 	
 	namespace
@@ -57,7 +57,7 @@ namespace exception
 
 		bool __stdcall rtl_dispatch_exception(PEXCEPTION_RECORD ex, PCONTEXT ctx)
 		{
-			if (_ReturnAddress() == ret_rtl_dispatch_exception_ptr)
+			if (_ReturnAddress() == call_rtl_dispatch_exception_ptr + 5)
 			{
 				auto& pex = EXCEPTION_POINTERS
 				{ 
@@ -75,13 +75,12 @@ namespace exception
 
 	void initialize()
 	{
-		auto rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::rtl_dispatch_exception_ptr);
-		ret_rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::ret_rtl_dispatch_exception_ptr);
+		call_rtl_dispatch_exception_ptr = utils::hook::scan_pattern("ntdll.dll", signatures::call_rtl_dispatch_exception_ptr);
 
-		if (!rtl_dispatch_exception_ptr)
+		if (!call_rtl_dispatch_exception_ptr)
 			return;
 
-		rtl_dispatch_exception_hook.create(rtl_dispatch_exception_ptr, rtl_dispatch_exception);
+		rtl_dispatch_exception_hook.create(utils::hook::extract(call_rtl_dispatch_exception_ptr + 1), rtl_dispatch_exception);
 
 		dvars::initialize();
 	}

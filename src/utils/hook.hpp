@@ -324,7 +324,7 @@ namespace utils::hook
 		return reinterpret_cast<T>(original);
 	}
 
-	template <typename T> T extract(void* place)
+	template <typename T = void*> auto extract(void* place)
 	{
 		const auto data = static_cast<uint8_t*>(place);
 		const auto offset = *reinterpret_cast<int*>(data);

@@ -3,7 +3,7 @@
 
 namespace events
 {
-	bool prevent_join = true, no_presence = true;
+	bool prevent_join = true;
 	
 	void initialize()
 	{
