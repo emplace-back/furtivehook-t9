@@ -138,7 +138,7 @@ namespace events::instant_message
 
 		scheduler::on_game_initialized([]()
 		{
-			if (const auto lobby = game::call<uintptr_t>(offsets::dwGetLobby, 0))
+			if (const auto lobby = game::dwGetLobby(0))
 			{
 				lobby_event_handlers_vmt.setup(*reinterpret_cast<uintptr_t**>(lobby + 0x750));
 				lobby_event_handlers_vmt.hook(27, on_global_instant_message);

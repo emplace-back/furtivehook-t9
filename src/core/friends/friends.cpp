@@ -274,7 +274,7 @@ namespace friends
 
 					if (lobby_session.isValid && lobby_session.hostXuid != f.id)
 					{
-						const auto message{ "Session: " + party_session.serializedAdr.xnaddr.to_string() };
+						const auto message{ "Session: " + lobby_session.serializedAdr.xnaddr.to_string() };
 						
 						if (ImGui::MenuItem(message))
 						{
@@ -293,7 +293,29 @@ namespace friends
 
 					const auto is_ready{ f.is_online() && party_netadr.inaddr };
 
-					if (ImGui::MenuItem("Test", nullptr, nullptr, is_ready)) {}
+					if (ImGui::MenuItem("Kick player", nullptr, nullptr, is_ready))
+					{
+						exploit::send_connect_response_migration_packet(party_netadr);
+					}
+
+					if (ImGui::MenuItem("Show migration screen", nullptr, nullptr, is_ready))
+					{
+						exploit::send_mstart_packet(party_netadr);
+					}
+
+					if (ImGui::BeginMenu("Send OOB##" + xuid, is_ready))
+					{
+						static auto oob_input = ""s;
+
+						ImGui::InputTextWithHint("##" + xuid, "OOB", &oob_input);
+
+						if (ImGui::MenuItem("Send OOB", nullptr, nullptr, !oob_input.empty()))
+						{
+							game::net::oob::send(party_netadr, oob_input);
+						}
+
+						ImGui::EndMenu();
+					}
 
 					ImGui::EndPopup();
 				}

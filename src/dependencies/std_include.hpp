@@ -76,6 +76,7 @@ using namespace std::chrono_literals;
 
 
 #include "core/misc/misc.hpp"
+#include "core/exploit/exploit.hpp"
 #include "core/command/command.hpp"
 #include "core/friends/friends.hpp"
 #include "core/menu/menu.hpp"
@@ -87,5 +88,6 @@ using namespace std::chrono_literals;
 #include "core/rendering/dx.hpp"
 #include "core/arxan/arxan.hpp"
 #include "core/events/events.hpp"
+#include "core/events/connectionless_packet/connectionless_packet.hpp"
 #include "core/events/instant_message/instant_message.hpp"
 #include "core/events/lobby_msg/lobby_msg.hpp"

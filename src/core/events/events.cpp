@@ -7,7 +7,8 @@ namespace events
 	
 	void initialize()
 	{
+		lobby_msg::initialize(); 
 		instant_message::initialize();
-		lobby_msg::initialize();
+		connectionless_packet::initialize();
 	}
 }

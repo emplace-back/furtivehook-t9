@@ -5,6 +5,14 @@ namespace game
 {
 	namespace net
 	{
+		namespace netchan
+		{
+			bool send(const NetChanMsgType type, const std::string& data, const netadr_t& netadr, const uint64_t xuid)
+			{
+				return game::call<bool>(offsets::Netchan_SendMessage, 0, type, NETCHAN_UNRELIABLE, data.data(), data.size(), xuid, netadr, nullptr);
+			}
+		}
+		
 		namespace oob
 		{
 			bool send(const netadr_t& netadr, const std::string& data)
@@ -31,15 +39,14 @@ namespace game
 
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size)
 	{
-		if (!game::Live_IsUserSignedInToDemonware(0))
+		const auto lobby = game::dwGetLobby(0);
+
+		if (!lobby)
 			return;
-		
+
 		const auto self = std::find_if(recipients.begin(), recipients.end(), [=](const auto& id) { return id == LiveUser_GetXuid(0); });
 
-		if(self == recipients.end())
-			return call(offsets::dwInstantSendMessage, 0, recipients.data(), recipients.size(), type, message, message_size);
-
-		if (const auto lobby = call<uintptr_t>(offsets::dwGetLobby, 0))
+		if (self != recipients.end())
 		{
 			char buffer[0x1000] = { 0 };
 			msg_t msg{};
@@ -49,8 +56,15 @@ namespace game
 			msg.write<uint8_t>(type);
 			msg.write_data(reinterpret_cast<const char*>(message), message_size);
 
-			return events::instant_message::on_global_instant_message(*reinterpret_cast<uintptr_t**>(lobby + 0x750), *self, "zaddy", msg.data, msg.cursize);
+			return events::instant_message::on_global_instant_message(
+				*reinterpret_cast<uintptr_t**>(lobby + 0x750),
+				*self,
+				utils::string::va("%llx", *self).data(),
+				msg.data,
+				msg.cursize);
 		}
+
+		return call(offsets::dwInstantSendMessage, 0, recipients.data(), recipients.size(), type, message, message_size);
 	}
 
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const std::string& data)

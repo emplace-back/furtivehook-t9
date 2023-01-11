@@ -12,6 +12,11 @@ namespace game
 {
 	namespace net
 	{
+		namespace netchan
+		{
+			bool send(const NetChanMsgType type, const std::string& data, const netadr_t& netadr, const uint64_t xuid);
+		}
+		
 		namespace oob
 		{
 			bool send(const netadr_t& target, const std::string& data);
@@ -63,5 +68,7 @@ namespace game
 
 	const static auto LiveUser_GetXuid = reinterpret_cast<uint64_t(*)(int)>(OFFSET(offsets::Live_GetXuid));
 	const static auto Live_IsUserSignedInToDemonware = reinterpret_cast<bool(*)(int)>(OFFSET(offsets::Live_IsUserSignedInToDemonware));
+	const static auto dwGetLobby = reinterpret_cast<uintptr_t(*)(int)>(OFFSET(offsets::dwGetLobby));
 	const static auto dwNetadrToCommonAddr = reinterpret_cast<bool(*)(netadr_t, void*, const uint32_t, void*)>(OFFSET(offsets::dwNetadrToCommonAddr));
+	const static auto Sys_GetTLS = reinterpret_cast<TLSData*(*)()>(OFFSET(0x7FF7DC050460));
 }

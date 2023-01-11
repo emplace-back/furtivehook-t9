@@ -5,8 +5,11 @@ namespace offsets
 	constexpr auto dump_base = 0x7FF7D0110000;
 	constexpr auto jmp_qword_ptr_rbx = 0x7FF7EB3AC102;
 	
+	constexpr auto Cmd_TokenizeStringInternal = 0x7FF7D9A9AA70;
 	constexpr auto IN_Activate = 0x7FF7DCCCB2C0;
 	constexpr auto NET_OutOfBandData = 0x7FF7D9BD28D0;
+	constexpr auto Netchan_SendMessage = 0x7FF7D9BD5B40;
+	constexpr auto LobbyNetChan_GetLobbyChannel = 0x7FF7DB4480A0;
 	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF7D96BF190;
 	constexpr auto Live_GetXuid = 0x7FF7DC9F1E80;
 	constexpr auto InfoResponse = 0x7FF7DA003F70;

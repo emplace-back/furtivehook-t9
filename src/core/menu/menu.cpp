@@ -168,6 +168,21 @@ namespace menu
 						{
 							ImGui::MenuItem(player_name + "##"s + std::to_string(client_num) + "player_menu_item", nullptr, false, false);
 
+							if (ImGui::BeginMenu("Add to friends list##" + std::to_string(client_num)))
+							{
+								auto friend_player_name = std::string{ player_name };
+
+								ImGui::InputTextWithHint("##" + std::to_string(client_num), "Name", &friend_player_name);
+
+								if (ImGui::Button("Add friend"))
+								{
+									friends::friends.emplace_back(friends::friend_info{ player_xuid, friend_player_name });
+									friends::write();
+								}
+
+								ImGui::EndMenu();
+							}
+							
 							ImGui::EndMenu();
 						}
 
@@ -195,9 +210,33 @@ namespace menu
 
 						if (ImGui::BeginMenu("Exploits##" + std::to_string(client_num)))
 						{
-							if (ImGui::MenuItem("Disconnect client from lobby"))
+							if (ImGui::MenuItem("Show migration screen", nullptr, nullptr, is_netadr_valid))
 							{
-								game::call(0x7FF7DA635AF0, 0, session->type, player_xuid, 2);
+								exploit::send_mstart_packet(netadr);
+							}
+
+							if (ImGui::MenuItem("Kick from lobby", nullptr, nullptr, is_netadr_valid))
+							{
+								exploit::send_connect_response_migration_packet(netadr);
+							}
+							
+							if (ImGui::MenuItem("Disconnect client from lobby", nullptr, nullptr, is_netadr_valid))
+							{
+								exploit::lobby_msg::send_disconnect_client(session, player_xuid);
+							}
+
+							if (ImGui::BeginMenu("Send OOB##" + std::to_string(client_num), is_netadr_valid))
+							{
+								static auto string_input = ""s;
+
+								ImGui::InputTextWithHint("##" + std::to_string(client_num), "OOB", &string_input);
+
+								if (ImGui::MenuItem("Send OOB"))
+								{
+									game::net::oob::send(netadr, string_input);
+								}
+
+								ImGui::EndMenu();
 							}
 							
 							ImGui::EndMenu();
@@ -249,16 +288,16 @@ namespace menu
 
 				if (ImGui::BeginTabItem("Server"))
 				{
-					static auto target_steam_id{ ""s };
+					static auto target_id_input{ ""s };
 
 					ImGui::SetNextItemWidth(width * 0.85f);
-					ImGui::InputTextWithHint("##target_steam_id", "Steam ID", &target_steam_id);
+					ImGui::InputTextWithHint("##target_steam_id", "Steam ID", &target_id_input);
 
-					const auto target_id{ std::strtoull(target_steam_id.data(), nullptr, 10) };
+					const auto target_id{ std::strtoull(target_id_input.data(), nullptr, 10) };
 
-					if (ImGui::MenuItem("Send popup", nullptr, nullptr, target_id && !target_steam_id.empty()))
+					if (ImGui::MenuItem("Send popup", nullptr, nullptr, target_id && !target_id_input.empty()))
 					{
-						events::instant_message::send_info_request({ target_id }, 1);
+						exploit::instant_message::send_popup(target_id);
 					}
 					
 					ImGui::EndTabItem();

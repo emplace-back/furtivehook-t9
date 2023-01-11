@@ -36,7 +36,9 @@ namespace events::lobby_msg
 				ret_lobby_msg_rw_package_int = utils::hook::scan_pattern(signatures::ret_lobby_msg_rw_package_int) + 0x7C;
 			}
 
-			if (reinterpret_cast<uint8_t*>(*(rsp + 16 + 6)) == ret_lobby_msg_rw_package_int)
+			const auto ret_address = *(rsp + 16 + 6);
+
+			if (reinterpret_cast<uint8_t*>(ret_address) == ret_lobby_msg_rw_package_int)
 			{
 				const auto* key = reinterpret_cast<const char*>(*(rsp + 16 + 6 - 1));
 
@@ -54,12 +56,70 @@ namespace events::lobby_msg
 					msg->overflowed = 1;
 				}
 			}
+
+			const std::vector<std::pair<uintptr_t, game::netadr_t>> oob_handlers =
+			{
+				{ 0xCE8B0C558B, *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 0x95 + 0x8) },
+				{ 0xCE8B0C578B, *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 0x95) },
+			};
+
+			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [&](const auto& handler) { return (*reinterpret_cast<uint64_t*>(ret_address) & 0xFFFFFFFFFF) == handler.first; });
+
+			if (oob != oob_handlers.end())
+			{
+				if (events::connectionless_packet::handle_command(oob->second, msg))
+				{
+					*msg = {};
+				}
+			}
 			
 			return value;
 		}
+
+		std::string build_lobby_msg(const game::LobbyModule module)
+		{
+			auto data{ ""s };
+			const auto header{ 0x97Aui16 };
+			data.append(reinterpret_cast<const char*>(&header), sizeof header);
+			data.push_back(module);
+			data.push_back(-1);
+			return data;
+		}
+
+		void send_lobby_msg(const game::NetChanMsgType channel, const game::LobbyModule module, const game::msg_t& msg, const game::netadr_t& netadr, const std::uint64_t xuid)
+		{
+			auto data{ lobby_msg::build_lobby_msg(module) };
+			data.append(reinterpret_cast<const char*>(msg.data), msg.cursize);
+
+			constexpr auto interval = 75ms;
+			const auto now = std::chrono::high_resolution_clock::now();
+			static std::chrono::high_resolution_clock::time_point last_call{};
+			static size_t count{ 0 };
+
+			count = last_call + interval >= now ? count + 1 : 0;
+
+			const auto send_lobby_msg = [=]()
+			{
+				game::net::netchan::send(channel, data, netadr, xuid);
+			};
+
+			scheduler::once(send_lobby_msg, scheduler::pipeline::main, interval * count);
+			last_call = now;
+		}
 	}
 
-	bool __fastcall handle_packet(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
+	void send_lobby_msg(const game::LobbyModule module, const game::msg_t& msg, const game::netadr_t& netadr, const std::uint64_t xuid)
+	{
+		const auto session = game::session_data();
+
+		if (session == nullptr)
+			return;
+
+		const auto channel = game::call<game::NetChanMsgType>(offsets::LobbyNetChan_GetLobbyChannel, session->type, game::LOBBY_CHANNEL_UNRELIABLE);
+		return send_lobby_msg(channel, module, msg, netadr, xuid);
+	}
+	
+	bool handle_packet(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
 	{
 		const auto ip_str{ utils::get_sender_string(from) };
 		const auto type_name{ game::LobbyTypes_GetMsgTypeName(msg.type) };

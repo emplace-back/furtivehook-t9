@@ -1,8 +1,68 @@
 #pragma once
+#include <type_traits>
 #include "dependencies/std_include.hpp"
 
 namespace game 
 {
+	enum NetchanMsgMode
+	{
+		NETCHAN_RELIABLE,
+		NETCHAN_UNRELIABLE,
+	}; 
+	
+	enum NetChanMsgType
+	{
+		NETCHAN_INVALID_CHANNEL = -1,
+		NETCHAN_SNAPSHOT,
+		NETCHAN_CLIENTMSG,
+		NETCHAN_VOICE,
+		NETCHAN_LOBBY_VOICE,
+		NETCHAN_LOBBYPRIVATE_STATE,
+		NETCHAN_LOBBYPRIVATE_HEARTBEAT,
+		NETCHAN_LOBBYPRIVATE_RELIABLE,
+		NETCHAN_LOBBYPRIVATE_UNRELIABLE,
+		NETCHAN_LOBBYPRIVATE_MIGRATE,
+		NETCHAN_LOBBYGAME_STATE,
+		NETCHAN_LOBBYGAME_HEARTBEAT,
+		NETCHAN_LOBBYGAME_RELIABLE,
+		NETCHAN_LOBBYGAME_UNRELIABLE,
+		NETCHAN_LOBBYGAME_MIGRATE,
+		NETCHAN_LOBBYTRANSITION_STATE,
+		NETCHAN_LOBBYTRANSITION_HEARTBEAT,
+		NETCHAN_LOBBYTRANSITION_RELIABLE,
+		NETCHAN_LOBBYTRANSITION_UNRELIABLE,
+		NETCHAN_LOBBYTRANSITION_MIGRATE,
+		NETCHAN_LOBBY_JOIN,
+		NETCHAN_PTP,
+		NETCHAN_CLIENT_CONTENT,
+		NETCHAN_CLIENT_CMD,
+		NETCHAN_CONNECTIONLESS_CMD,
+		NETCHAN_TEST,
+		NETCHAN_MAX_CHANNELS,
+	};
+
+	enum LobbyDisconnectClient
+	{
+		LOBBY_DISCONNECT_CLIENT_INVALID = -1,
+		LOBBY_DISCONNECT_CLIENT_DROP,
+		LOBBY_DISCONNECT_CLIENT_KICK,
+		LOBBY_DISCONNECT_CLIENT_BADDLC,
+		LOBBY_DISCONNECT_CLIENT_KICK_PARTY,
+		LOBBY_DISCONNECT_CLIENT_HOSTRELOAD,
+		LOBBY_DISCONNECT_CLIENT_NOPARTYCHAT,
+	}; 
+	
+	enum LobbyChannel
+	{
+		LOBBY_CHANNEL_HEARTBEAT,
+		LOBBY_CHANNEL_STATE,
+		LOBBY_CHANNEL_UNRELIABLE,
+		LOBBY_CHANNEL_RELIABLE,
+		LOBBY_CHANNEL_MIGRATE,
+		LOBBY_CHANNEL_PEER_TO_PEER,
+		LOBBY_CHANNEL_COUNT,
+	};
+	
 	enum netsrc_t
 	{
 		NS_NULL = -1,
@@ -23,6 +83,16 @@ namespace game
 		NA_RAWIP,
 		NA_IP,
 	}; 
+
+	enum LobbyMsgElementType
+	{
+		MESSAGE_ELEMENT_INT32,
+		MESSAGE_ELEMENT_UINT32,
+		MESSAGE_ELEMENT_UINT8 = 5,
+		MESSAGE_ELEMENT_XUID = 9,
+		MESSAGE_ELEMENT_STRING = 11,
+		MESSAGE_ELEMENT_GLOB = 12,
+	};
 	
 	enum PackageType
 	{
@@ -82,7 +152,7 @@ namespace game
 		LOBBY_MODULE_INVALID = -1,
 		LOBBY_MODULE_HOST,
 		LOBBY_MODULE_CLIENT,
-		LOBBY_MODULE_PEER_TO_PEER,
+		LOBBY_MODULE_PEER_TO_PEER = 3,
 		LOBBY_MODULE_LUA_HOST,
 		LOBBY_MODULE_LUA_CLIENT,
 		LOBBY_MODULE_COUNT,
@@ -136,9 +206,9 @@ namespace game
 			this->encodeFlags = 0;
 
 			this->write_bits(0, 2);
-			this->write<uint8_t>(5);
+			this->write<uint8_t>(MESSAGE_ELEMENT_UINT8);
 			this->write<uint8_t>(msg_type);
-			this->write<uint8_t>(11);
+			this->write<uint8_t>(MESSAGE_ELEMENT_STRING);
 			this->write_data("sike");
 		}
 		
@@ -159,9 +229,19 @@ namespace game
 		{
 			if (packageType != PACKAGE_TYPE_WRITE)
 				return;
-
+			
 			this->write<uint8_t>(element_type);
 			this->write<T>(value);
+		}
+
+		void write_data_lobby(const char* data, const size_t length)
+		{
+			if (packageType != PACKAGE_TYPE_WRITE)
+				return;
+
+			this->write<uint8_t>(MESSAGE_ELEMENT_GLOB);
+			this->write<uint16_t>(length);
+			this->write_data(data, length);
 		}
 		
 		template<typename T> void write(T value)
@@ -272,7 +352,7 @@ namespace game
 			uint32_t inaddr;
 		};
 
-		std::uint16_t port;
+		uint16_t port;
 		netadrtype_t type;
 		netsrc_t localNetID;
 	};
@@ -290,9 +370,9 @@ namespace game
 		uint16_t port;
 		char pad2[0x30];
 
-		const std::string to_string(bool port = false) const
+		const std::string to_string(bool include_port = false) const
 		{
-			return port ? utils::string::va("%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], port) : utils::string::va("%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
+			return include_port ? utils::string::va("%u.%u.%u.%u:%u", addr[0], addr[1], addr[2], addr[3], include_port) : utils::string::va("%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
 		}
 	};
 #pragma pack(pop)
@@ -308,7 +388,7 @@ namespace game
 	{
 		char ab[16];
 	}; 
-
+	
 	struct SerializedAdr
 	{
 		bool valid;
@@ -352,6 +432,23 @@ namespace game
 		char pad2[0x20];
 	};
 
+	struct HostInfo
+	{
+		uint64_t xuid;
+		char name[36]; 
+		char pad[0x24];
+		netadr_t netadr;
+		SerializedAdr serializedAdr;
+		bdSecurityID secId;
+		bdSecurityKey secKey;
+		uint32_t serverLocation;
+	};
+
+	struct SessionHost
+	{
+		HostInfo info;
+	};
+
 	struct LobbySession
 	{
 		LobbyModule module;
@@ -359,9 +456,11 @@ namespace game
 		int mode;
 		char pad[0x38];
 		SessionActive active;
-		char pad2[0x148];
+		char pad2[0x5C];
+		SessionHost host;
+		char pad3[0xA];
 		SessionClient clients[18];
-		char pad3[0x11FC0];
+		char pad4[0x11FC0];
 	};
 
 	struct InfoResponseLobby
@@ -383,5 +482,29 @@ namespace game
 		int playlistID;
 		uint8_t natType;
 		InfoResponseLobby lobby[3];
+	};
+
+	struct CmdArgs
+	{
+		int nesting;
+		int localClientNum[8];
+		int controllerIndex[8];
+		int argshift[8];
+		int argc[8];
+		const char** argv[8];
+		char textPool[8192];
+		const char* argvPool[512];
+		int usedTextPool[8];
+		int totalUsedArgvPool;
+		int totalUsedTextPool;
+	};
+
+	struct TLSData
+	{
+		void* vaInfo;
+		jmp_buf* errorJmpBuf;
+		void* traceInfo;
+		CmdArgs* cmdArgs;
+		void* errorData;
 	};
 }
