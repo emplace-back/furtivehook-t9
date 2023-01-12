@@ -19,6 +19,7 @@ namespace game
 		
 		namespace oob
 		{
+			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby);
 			bool send(const netadr_t& target, const std::string& data);
 		}
 	}

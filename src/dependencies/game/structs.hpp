@@ -461,7 +461,9 @@ namespace game
 
 	struct MutableClientInfo
 	{
-		char pad[0x350];
+		char pad[0xE0];
+		bool inputDevice;
+		char pad2[0x26F];
 	};
 	
 	struct ActiveClient

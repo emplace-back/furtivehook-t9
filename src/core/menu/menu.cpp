@@ -157,6 +157,17 @@ namespace menu
 
 					ImGui::PopStyleColor();
 
+					if (const auto f = friends::get(player_xuid); f && f->id == player_xuid)
+					{
+						ImGui::SameLine(0, spacing);
+
+						auto friend_name = "(" + f->name + ")";
+						if (f->name == player_name)
+							friend_name = "[Friend]";
+
+						ImGui::TextColored(ImVec4(0.0f, 0.5f, 1.0f, 0.95f), "%s", friend_name.data());
+					}
+
 					const auto popup = "player_popup##" + std::to_string(client_num);
 
 					if (selected)
@@ -223,6 +234,13 @@ namespace menu
 						if (ImGui::MenuItem(platform_name))
 						{
 							ImGui::LogToClipboardUnformatted(platform_name);
+						}
+
+						const auto input_device = target_client->mutableClientInfo.inputDevice ? "Controller" : "Mouse";
+
+						if (ImGui::MenuItem(input_device))
+						{
+							ImGui::LogToClipboardUnformatted(input_device);
 						}
 
 						ImGui::Separator();

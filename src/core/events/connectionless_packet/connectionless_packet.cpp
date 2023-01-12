@@ -63,12 +63,8 @@ namespace events::connectionless_packet
 		};
 		
 		connectionless_packet::on_command("mstart", ignore_oob);
-		connectionless_packet::on_command("mhead", ignore_oob);
-		connectionless_packet::on_command("mstate", ignore_oob);
 		connectionless_packet::on_command("connectResponseMigration", ignore_oob);
 		connectionless_packet::on_command("print", ignore_oob);
 		connectionless_packet::on_command("echo", ignore_oob);
-		connectionless_packet::on_command("rcon", ignore_oob);
-		connectionless_packet::on_command("RA", ignore_oob);
 	}
 }

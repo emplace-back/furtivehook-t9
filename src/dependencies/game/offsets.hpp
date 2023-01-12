@@ -9,6 +9,7 @@ namespace offsets
 	constexpr auto IN_Activate = 0x7FF7DCCCB2C0;
 	constexpr auto NET_OutOfBandData = 0x7FF7D9BD28D0;
 	constexpr auto Netchan_SendMessage = 0x7FF7D9BD5B40;
+	constexpr auto LobbyJoin_ConnectToHost = 0x7FF7DB34A010;
 	constexpr auto LobbyNetChan_GetLobbyChannel = 0x7FF7DB4480A0;
 	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF7D96BF190;
 	constexpr auto Live_GetXuid = 0x7FF7DC9F1E80;
@@ -17,7 +18,8 @@ namespace offsets
 	constexpr auto dwGetLobby = 0x7FF7DAD00190;
 	constexpr auto dwNetadrToCommonAddr = 0x7FF7DAE42DF0;
 	constexpr auto dwInstantSendMessage = 0x7FF7DACD0F80;
-	
+	constexpr auto ret_com_switch_mode = 0x7FF7D57BDE79;
+
 	constexpr auto s_lobbyMsgName = 0x7FF7DE121840;
 	constexpr auto s_clientSession = 0x7FF7E3362AD0;
 }

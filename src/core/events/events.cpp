@@ -88,7 +88,7 @@ namespace events
 
 	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp)
 	{
-		if (*(rsp + 16 + 6) == OFFSET(0x7FF7D57BDE79))
+		if (*(rsp + 16 + 6) == OFFSET(offsets::ret_com_switch_mode))
 		{
 			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp + 16 + 6 + 1));
 		}

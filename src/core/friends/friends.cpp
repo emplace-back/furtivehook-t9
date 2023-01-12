@@ -148,31 +148,6 @@ namespace friends
 		const auto friends = get_friends_file();
 		utils::io::write_file(friends, result.dump());
 	}
-
-	bool register_remote_addr(const game::HostInfo& info, game::netadr_t* addr)
-	{
-		game::call(0x7FF7DAE433D0, &info.secId, &info.secKey);
-
-		if (!game::call<bool>(0x7FF7DAE41170, addr, &info.serializedAdr.xnaddr, &info.secId))
-		{
-			DEBUG_LOG("Failed to retrieve the remote IP address from XNADDR");
-			return false;
-		}
-
-		return true;
-	}
-
-	game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby)
-	{
-		game::netadr_t netadr{};
-
-		if (register_remote_addr(game::HostInfo{}.from_lobby(lobby), &netadr))
-		{
-			return netadr;
-		}
-
-		return {};
-	}
 	
 	void draw_friends_list(const float width, const float spacing)
 	{
@@ -296,7 +271,7 @@ namespace friends
 							ImGui::LogToClipboardUnformatted(message);
 						}
 
-						party_netadr = register_remote_addr(party_session);
+						party_netadr = game::net::oob::register_remote_addr(party_session);
 					}
 
 					if (lobby_session.isValid && lobby_session.hostXuid != f.id)
