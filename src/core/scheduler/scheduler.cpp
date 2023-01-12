@@ -65,40 +65,6 @@ namespace scheduler
 	};
 
 	task_pipeline pipelines[pipeline::count];
-	utils::hook::detour time_get_time_hook;
-
-	DWORD __stdcall time_get_time(uintptr_t* rsp)
-	{
-		static uint8_t* ret_com_client_packet_event{};
-
-		if (!ret_com_client_packet_event)
-		{
-			ret_com_client_packet_event = utils::hook::scan_pattern(signatures::ret_com_client_packet_event);
-		}
-
-		const auto ret_address = *(rsp + 16 + 6);
-		
-		// Com_Frame_Try_Block_Function
-		if ((*reinterpret_cast<uint64_t*>(ret_address) & 0xFFFFFFFFFF) == 0x828D0FC73B)
-		{
-			scheduler::execute(scheduler::pipeline::main);
-		}
-		else if (reinterpret_cast<uint8_t*>(ret_address) == ret_com_client_packet_event)
-		{
-			const auto msg = reinterpret_cast<game::msg_t*>(rsp + 16 + 6 + 11);
-			const auto msg_backup = *msg;
-
-			if (!events::connectionless_packet::handle_command(
-				*reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 9), 
-				msg,
-				false))
-			{
-				*msg = msg_backup;
-			}
-		}
-
-		return time_get_time_hook.call<DWORD>();
-	}
 
 	void execute(const pipeline type)
 	{
@@ -150,19 +116,5 @@ namespace scheduler
 
 			return cond_continue;
 		}, type);
-	}
-	
-	void initialize()
-	{
-		const auto time_get_time_stub = utils::hook::assemble([](utils::hook::assembler& a)
-		{
-			a.pushad64();
-			a.lea(rcx, qword_ptr(rsp));
-			a.call_aligned(time_get_time);
-			a.popad64(true);
-			a.ret();
-		}); 
-
-		time_get_time_hook.create(::timeGetTime, time_get_time_stub);
 	}
 }

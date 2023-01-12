@@ -389,38 +389,86 @@ namespace game
 		char ab[16];
 	}; 
 	
+	struct XSESSION_INFO
+	{
+		bdSecurityID sessionID;
+		XNADDR hostAddress;
+		bdSecurityKey keyExchangeKey;
+	}; 
+	
 	struct SerializedAdr
 	{
 		bool valid;
 		XNADDR xnaddr;
 	};
-	
-	struct SessionInfo
-	{
-		bool inSession;
-		netadr_t netAdr;
-		time_t lastMessageSentToPeer;
-	}; 
 
 	struct LobbyParams
 	{
 		int networkMode;
 		int mainMode;
 	};
+
+	struct InfoResponseLobby
+	{
+		bool isValid;
+		uint64_t hostXuid;
+		char hostName[36];
+		bdSecurityID secId;
+		bdSecurityKey secKey;
+		SerializedAdr serializedAdr;
+		int status;
+		LobbyParams lobbyParams;
+
+		game::XSESSION_INFO get_sess_info() const
+		{
+			if (!isValid)
+				return {};
+
+			game::XSESSION_INFO info{};
+			info.sessionID = secId;
+			info.keyExchangeKey = secKey;
+			info.hostAddress = serializedAdr.xnaddr;
+			return info;
+		}
+	};
+
+	struct Msg_InfoResponse
+	{
+		uint32_t nonce;
+		int uiScreen;
+		int playlistID;
+		uint8_t natType;
+		InfoResponseLobby lobby[3];
+	};
+
+	struct SessionInfo
+	{
+		bool inSession;
+		netadr_t netAdr;
+		time_t lastMessageSentToPeer;
+	}; 
 	
 	struct FixedClientInfo
 	{
-		char pad[0x8];
+		int platform;
+		int dwPlatformType;
 		uint64_t xuid;
 		char pad2[0xB5];
 		char gamertag[36];
-	}; 
+		char name[64];
+		char platformName[36];
+	};
+
+	struct MutableClientInfo
+	{
+		char pad[0x350];
+	};
 	
 	struct ActiveClient
 	{
-		char pad[0x358];
+		MutableClientInfo mutableClientInfo; 
+		char pad[0x8];
 		FixedClientInfo fixedClientInfo;
-		char pad2[0x60];
 		SessionInfo sessionInfo[3];
 	};
 
@@ -435,13 +483,24 @@ namespace game
 	struct HostInfo
 	{
 		uint64_t xuid;
-		char name[36]; 
+		char name[36];
 		char pad[0x24];
 		netadr_t netadr;
 		SerializedAdr serializedAdr;
 		bdSecurityID secId;
 		bdSecurityKey secKey;
 		uint32_t serverLocation;
+
+		game::HostInfo from_lobby(const game::InfoResponseLobby& lobby)
+		{
+			game::HostInfo host_info{};
+			host_info.xuid = lobby.hostXuid;
+			const auto sess_info = lobby.get_sess_info();
+			host_info.secId = sess_info.sessionID;
+			host_info.secKey = sess_info.keyExchangeKey;
+			host_info.serializedAdr.xnaddr = sess_info.hostAddress;
+			return host_info;
+		}
 	};
 
 	struct SessionHost
@@ -461,27 +520,6 @@ namespace game
 		char pad3[0xA];
 		SessionClient clients[18];
 		char pad4[0x11FC0];
-	};
-
-	struct InfoResponseLobby
-	{
-		bool isValid;
-		uint64_t hostXuid;
-		char hostName[36];
-		bdSecurityID secId;
-		bdSecurityKey secKey;
-		SerializedAdr serializedAdr;
-		int status;
-		LobbyParams lobbyParams;
-	};
-
-	struct Msg_InfoResponse
-	{
-		uint32_t nonce;
-		int uiScreen;
-		int playlistID;
-		uint8_t natType;
-		InfoResponseLobby lobby[3];
 	};
 
 	struct CmdArgs
@@ -506,5 +544,12 @@ namespace game
 		void* traceInfo;
 		CmdArgs* cmdArgs;
 		void* errorData;
+	};
+
+	struct CmdText
+	{
+		char data[0x1F400];
+		int maxsize;
+		int cmdsize;
 	};
 }

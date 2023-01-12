@@ -22,6 +22,8 @@ namespace game
 			bool send(const netadr_t& target, const std::string& data);
 		}
 	}
+
+	extern CmdText* cmd_text;
 	
 	void initialize();
 	uintptr_t get_base();

@@ -20,6 +20,11 @@ namespace utils::nt
 		return library(handle);
 	}
 
+	library library::get_by_address(const uintptr_t address)
+	{
+		return get_by_address(reinterpret_cast<void*>(address));
+	}
+
 	library::library()
 	{
 		this->module_ = GetModuleHandleA(nullptr);

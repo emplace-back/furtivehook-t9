@@ -11,7 +11,7 @@ BOOL __stdcall DllMain(const HMODULE module, const DWORD reason, const LPVOID /*
 				DisableThreadLibraryCalls(module);
 
 				arxan::initialize();
-				scheduler::initialize();
+				events::initialize();
 				misc::initialize();
 				friends::initialize();
 			}

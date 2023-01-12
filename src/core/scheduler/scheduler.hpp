@@ -27,5 +27,4 @@ namespace scheduler
 	void loop(const std::function<void()>& callback, const pipeline type = pipeline::main, const std::chrono::milliseconds delay = 0ms);
 	void once(const std::function<void()>& callback, const pipeline type = pipeline::main, const std::chrono::milliseconds delay = 0ms);
 	void on_game_initialized(const std::function<void()>& callback, const pipeline type = pipeline::main, const std::chrono::milliseconds delay = 0ms);
-	void initialize();
 }

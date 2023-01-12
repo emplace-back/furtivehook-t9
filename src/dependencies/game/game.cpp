@@ -3,6 +3,8 @@
 
 namespace game
 {
+	CmdText* cmd_text{ nullptr };
+	
 	namespace net
 	{
 		namespace netchan
@@ -107,23 +109,15 @@ namespace game
 
 	void Cbuf_AddText(const char* text)
 	{
-		struct CmdText
-		{
-			char data[0x1F400];
-			int maxsize;
-			int cmdsize;
-		};
+		if (!cmd_text)
+			return;
 
-		const auto cmd_text_buf = reinterpret_cast<CmdText*>(OFFSET(offsets::cmd_text_buf));
 		const auto length = std::strlen(text);
 
-		if (!cmd_text_buf)
+		if (cmd_text->cmdsize + length >= cmd_text->maxsize)
 			return;
 
-		if (cmd_text_buf->cmdsize + length >= cmd_text_buf->maxsize)
-			return;
-
-		std::memcpy(&cmd_text_buf->data[cmd_text_buf->cmdsize], text, length + 1);
-		cmd_text_buf->cmdsize += length;
+		std::memcpy(&cmd_text->data[cmd_text->cmdsize], text, length + 1);
+		cmd_text->cmdsize += length;
 	}
 }

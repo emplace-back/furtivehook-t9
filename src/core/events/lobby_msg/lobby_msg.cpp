@@ -27,55 +27,6 @@ namespace events::lobby_msg
 			get_callbacks()[{ module, type }] = callback;
 		}
 
-		int __fastcall big_long_read(int value, uintptr_t* rsp, game::msg_t* msg)
-		{
-			static uint8_t* ret_lobby_msg_rw_package_int{};
-
-			if (!ret_lobby_msg_rw_package_int)
-			{
-				ret_lobby_msg_rw_package_int = utils::hook::scan_pattern(signatures::ret_lobby_msg_rw_package_int) + 0x7C;
-			}
-
-			const auto ret_address = *(rsp + 16 + 6);
-
-			if (reinterpret_cast<uint8_t*>(ret_address) == ret_lobby_msg_rw_package_int)
-			{
-				const auto* key = reinterpret_cast<const char*>(*(rsp + 16 + 6 - 1));
-
-				const std::vector<std::pair<std::string, uint32_t>> patches =
-				{
-					{ "lobbytype", 2 },
-					{ "clientcount", 18 },
-				};
-
-				const auto result = std::any_of(patches.begin(), patches.end(), [&](const auto& p) { return p.first == key && static_cast<uint32_t>(value) > p.second; });
-
-				if (result)
-				{
-					PRINT_LOG("Crash attempt caught <%s> with key '%s' of value [%i]", game::LobbyTypes_GetMsgTypeName(msg->type), key, value);
-					msg->overflowed = 1;
-				}
-			}
-
-			const std::vector<std::pair<uintptr_t, game::netadr_t>> oob_handlers =
-			{
-				{ 0xCE8B0C558B, *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 0x95 + 0x8) },
-				{ 0xCE8B0C578B, *reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 0x95) },
-			};
-
-			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [&](const auto& handler) { return (*reinterpret_cast<uint64_t*>(ret_address) & 0xFFFFFFFFFF) == handler.first; });
-
-			if (oob != oob_handlers.end())
-			{
-				if (events::connectionless_packet::handle_command(oob->second, msg))
-				{
-					*msg = {};
-				}
-			}
-			
-			return value;
-		}
-
 		std::string build_lobby_msg(const game::LobbyModule module)
 		{
 			auto data{ ""s };
@@ -119,7 +70,7 @@ namespace events::lobby_msg
 		return send_lobby_msg(channel, module, msg, netadr, xuid);
 	}
 	
-	bool handle_packet(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
+	bool handle(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
 	{
 		const auto ip_str{ utils::get_sender_string(from) };
 		const auto type_name{ game::LobbyTypes_GetMsgTypeName(msg.type) };
@@ -138,30 +89,6 @@ namespace events::lobby_msg
 	
 	void initialize()
 	{
-		const auto biglong_ptr = utils::hook::scan_pattern(signatures::biglong_ptr);
-
-		if (!biglong_ptr)
-			return; 
-
-		const auto big_long_read_stub = utils::hook::assemble([](utils::hook::assembler& a)
-		{
-			a.pushad64();
-			a.lea(r8, qword_ptr(rbx));
-			a.lea(rdx, qword_ptr(rsp));
-			a.call_aligned(big_long_read);
-			a.popad64(true);
-			a.ret();
-		});
-
-		scheduler::loop([=]()
-		{
-			if (const auto biglong = utils::hook::extract<uintptr_t**>(utils::hook::extract<uint8_t*>(biglong_ptr + 1) + 3);
-				biglong && *biglong != big_long_read_stub)
-			{
-				utils::hook::set(biglong, big_long_read_stub);
-			}
-		}, scheduler::pipeline::main);
-
 		lobby_msg::on_message(game::LOBBY_MODULE_CLIENT, game::MESSAGE_TYPE_LOBBY_HOST_DISCONNECT_CLIENT, lobby_msg::handle_host_disconnect_client);
 	}
 }

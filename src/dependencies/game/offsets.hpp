@@ -20,5 +20,4 @@ namespace offsets
 	
 	constexpr auto s_lobbyMsgName = 0x7FF7DE121840;
 	constexpr auto s_clientSession = 0x7FF7E3362AD0;
-	constexpr auto cmd_text_buf = 0x7FF7E1FBB250;
 }

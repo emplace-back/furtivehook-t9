@@ -168,6 +168,16 @@ namespace menu
 						{
 							ImGui::MenuItem(player_name + "##"s + std::to_string(client_num) + "player_menu_item", nullptr, false, false);
 
+							if (ImGui::IsItemClicked())
+							{
+								ImGui::LogToClipboardUnformatted(player_name);
+							}
+
+							if (ImGui::IsItemHovered())
+							{
+								ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+							}
+
 							if (ImGui::BeginMenu("Add to friends list##" + std::to_string(client_num)))
 							{
 								auto friend_player_name = std::string{ player_name };
@@ -184,6 +194,35 @@ namespace menu
 							}
 							
 							ImGui::EndMenu();
+						}
+
+						ImGui::Separator(); 
+						
+						const auto platform_type = target_client->fixedClientInfo.dwPlatformType;
+						auto platform_name = "Invalid: " + std::to_string(platform_type); // 0x7FF7DD0697C0
+
+						switch (platform_type)
+						{
+						case 2:
+							platform_name = "Battle.net";
+							break;
+						case 6:
+							platform_name = "Playstation 4";
+							break;
+						case 7:
+							platform_name = "Playstation 5";
+							break;
+						case 17:
+							platform_name = "Xbox One";
+							break;
+						case 25:
+							platform_name = "Xbox Series X";
+							break;
+						}
+
+						if (ImGui::MenuItem(platform_name))
+						{
+							ImGui::LogToClipboardUnformatted(platform_name);
 						}
 
 						ImGui::Separator();

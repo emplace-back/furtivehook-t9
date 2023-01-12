@@ -60,7 +60,7 @@ namespace exception::dvars
 				const auto msg = reinterpret_cast<game::msg_t*>(stack + sizeof(uint64_t) + 0x40);
 				const auto msg_backup = *msg;
 
-				if (events::lobby_msg::handle_packet(
+				if (events::lobby_msg::handle(
 					*reinterpret_cast<game::LobbyModule*>(stack + sizeof(uint64_t) + 0xE0),
 					*reinterpret_cast<game::netadr_t*>(ctx.Rsi),
 					*msg))

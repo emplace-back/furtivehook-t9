@@ -9,6 +9,7 @@ namespace utils::nt
 		static library load(const std::string& name);
 		static library load(const std::filesystem::path& path);
 		static library get_by_address(const void* address);
+		static library get_by_address(const uintptr_t address);
 
 		library();
 		explicit library(const std::string& name);
