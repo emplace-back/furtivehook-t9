@@ -19,13 +19,12 @@ namespace game
 		
 		namespace oob
 		{
+			game::netadr_t register_remote_addr(const game::HostInfo& host_info);
 			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby);
 			bool send(const netadr_t& target, const std::string& data);
 		}
 	}
 
-	extern CmdText* cmd_text;
-	
 	void initialize();
 	uintptr_t get_base();
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size);
@@ -34,6 +33,8 @@ namespace game
 	const char* LobbyTypes_GetMsgTypeName(const MsgType type);
 	int find_target_from_addr(const LobbySession* session, const netadr_t& from);
 	void Cbuf_AddText(const char* text);
+
+	extern CmdText* cmd_text;
 	
 	inline uintptr_t relocate(const uintptr_t val)
 	{
@@ -73,5 +74,5 @@ namespace game
 	const static auto Live_IsUserSignedInToDemonware = reinterpret_cast<bool(*)(int)>(OFFSET(offsets::Live_IsUserSignedInToDemonware));
 	const static auto dwGetLobby = reinterpret_cast<uintptr_t(*)(int)>(OFFSET(offsets::dwGetLobby));
 	const static auto dwNetadrToCommonAddr = reinterpret_cast<bool(*)(netadr_t, void*, const uint32_t, void*)>(OFFSET(offsets::dwNetadrToCommonAddr));
-	const static auto Sys_GetTLS = reinterpret_cast<TLSData*(*)()>(OFFSET(0x7FF7DC050460));
+	const static auto Sys_GetTLS = reinterpret_cast<TLSData*(*)()>(OFFSET(offsets::Sys_GetTLS));
 }

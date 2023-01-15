@@ -3,10 +3,10 @@
 
 namespace events
 {
-	utils::hook::detour time_get_time_hook; 
+	utils::hook::detour time_get_time_hook;
 	bool prevent_join = true;
 
-	int __fastcall big_long_read(int value, uintptr_t* rsp, game::msg_t* msg)
+	int __fastcall big_long(int value, uintptr_t* rsp, game::msg_t* msg)
 	{
 		static uint8_t* lobby_msg_rw_package_int{}, *msg_read_long;
 
@@ -34,7 +34,7 @@ namespace events
 			const std::vector<std::pair<uintptr_t, uintptr_t>> oob_handlers =
 			{
 				{ 0xCE8B0C558B, *(rsp + 16 + 6 + 2) },
-				{ 0xCE8B0C578B, *(rsp + 16 - 6) }, // 10
+				{ 0xCE8B0C578B, *(rsp + 16 - 6) },
 			};
 
 			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [&](const auto& handler) { return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; });
@@ -53,7 +53,7 @@ namespace events
 		return value;
 	}
 
-	DWORD __stdcall time_get_time(uintptr_t* rsp_)
+	DWORD __stdcall time_get_time(uintptr_t* rsp)
 	{
 		static uint8_t* ret_com_client_packet_event{};
 
@@ -62,24 +62,28 @@ namespace events
 			ret_com_client_packet_event = utils::hook::scan_pattern(signatures::ret_com_client_packet_event);
 		}
 
-		const auto retaddr = *(rsp_ + 16 + 6);
-		
-		// Com_Frame_Try_Block_Function
-		if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == 0x828D0FC73B)
+		// Sys_Milliseconds
+		if ((*reinterpret_cast<uint64_t*>(*(rsp + 16) + 6) & 0xFFFFFFFFFF) == 0xC328C48348)
 		{
-			scheduler::execute(scheduler::pipeline::main);
-		}
-		else if (reinterpret_cast<uint8_t*>(retaddr) == ret_com_client_packet_event)
-		{
-			const auto msg = reinterpret_cast<game::msg_t*>(rsp_ + 16 + 6 + 11);
-			const auto msg_backup = *msg;
+			const auto retaddr = *(rsp + 22);
 
-			if (!events::connectionless_packet::handle_command(
-				*reinterpret_cast<game::netadr_t*>(rsp_ + 16 + 6 + 9),
-				msg,
-				false))
+			// Com_Frame_Try_Block_Function
+			if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == 0x828D0FC73B)
 			{
-				*msg = msg_backup;
+				scheduler::execute(scheduler::pipeline::main);
+			}
+			else if (reinterpret_cast<uint8_t*>(retaddr) == ret_com_client_packet_event)
+			{
+				const auto msg = reinterpret_cast<game::msg_t*>(rsp + 16 + 6 + 11);
+				const auto msg_backup = *msg;
+
+				if (!events::connectionless_packet::handle_command(
+					*reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 9),
+					msg,
+					false))
+				{
+					*msg = msg_backup;
+				}
 			}
 		}
 
@@ -118,7 +122,7 @@ namespace events
 			a.call_aligned(leave_critical_section);
 			a.popad64(true);
 			a.ret();
-		})); 
+		}));
 		
 		scheduler::once([]()
 		{
@@ -127,12 +131,12 @@ namespace events
 			if (!biglong_ptr)
 				return;
 
-			const auto big_long_read_stub = utils::hook::assemble([](utils::hook::assembler& a)
+			const auto big_long_stub = utils::hook::assemble([](utils::hook::assembler& a)
 			{
 				a.pushad64();
 				a.lea(r8, qword_ptr(rbx));
 				a.lea(rdx, qword_ptr(rsp));
-				a.call_aligned(big_long_read);
+				a.call_aligned(big_long);
 				a.popad64(true);
 				a.ret();
 			}); 
@@ -144,10 +148,10 @@ namespace events
 				if (!biglong)
 					return;
 
-				if (*biglong == big_long_read_stub)
+				if (*biglong == big_long_stub)
 					return;
 				
-				utils::hook::set(biglong, big_long_read_stub);
+				utils::hook::set(biglong, big_long_stub);
 			});
 		}, scheduler::pipeline::main);
 	}

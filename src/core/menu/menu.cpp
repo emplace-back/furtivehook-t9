@@ -96,7 +96,6 @@ namespace menu
 	void toggle()
 	{
 		open = !open;
-		game::call(offsets::IN_Activate, !open);
 	}
 
 	bool begin_section(const std::string& text)
@@ -229,6 +228,8 @@ namespace menu
 						case 25:
 							platform_name = "Xbox Series X";
 							break;
+						default:
+							break;
 						}
 
 						if (ImGui::MenuItem(platform_name))
@@ -277,7 +278,7 @@ namespace menu
 								exploit::send_connect_response_migration_packet(netadr);
 							}
 							
-							if (ImGui::MenuItem("Disconnect client from lobby", nullptr, nullptr, is_netadr_valid))
+							if (ImGui::MenuItem("Disconnect client from lobby"))
 							{
 								exploit::lobby_msg::send_disconnect_client(session, player_xuid);
 							}

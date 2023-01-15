@@ -7,17 +7,6 @@ namespace utils
 	std::string get_sender_string(const game::netadr_t& from);
 	void print_log(const char* msg, ...);
 
-	template <typename T> auto atoi(const std::string& str)
-	{
-		return static_cast<T>(std::atoi(str.data()));
-	}
-
-	static auto atoi(const std::string& str)
-	{
-		return atoi<int>(str);
-	}
-
-
 	template <class F>
 	class final_action
 	{

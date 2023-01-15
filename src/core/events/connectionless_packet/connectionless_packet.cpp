@@ -49,7 +49,7 @@ namespace events::connectionless_packet
 		if(header) msg->read<int>();
 		
 		char buffer[0x400] = { 0 };
-		game::call<char*>(0x7FF7D5F9A920, msg, buffer, sizeof buffer);
+		game::call<char*>(offsets::MSG_ReadStringLine, msg, buffer, sizeof buffer);
 
 		return handle_command(buffer, from, msg);
 	}

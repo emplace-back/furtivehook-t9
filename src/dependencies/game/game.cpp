@@ -17,17 +17,20 @@ namespace game
 		
 		namespace oob
 		{
-			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby)
+			game::netadr_t register_remote_addr(const game::HostInfo& host_info)
 			{
-				auto& host_info = game::HostInfo{}.from_lobby(lobby);
-
 				if (!game::call<bool>(offsets::LobbyJoin_ConnectToHost, &host_info))
 				{
-					DEBUG_LOG("Failed to retrieve remote IP address from XNADDR (%s)", lobby.serializedAdr.xnaddr.to_string().data());
+					DEBUG_LOG("Failed to retrieve remote IP address from XNADDR (%s)", host_info.serializedAdr.xnaddr.to_string().data());
 					return {};
 				}
 
 				return host_info.netadr;
+			}
+			
+			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby)
+			{
+				return oob::register_remote_addr(game::HostInfo{}.from_lobby(lobby));
 			}
 			
 			bool send(const netadr_t& netadr, const std::string& data)
@@ -41,7 +44,6 @@ namespace game
 	{
 		exception::initialize();
 		rendering::initialize();
-		events::initialize();
 
 		PRINT_LOG("Initialized!");
 	}

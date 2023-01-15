@@ -72,7 +72,7 @@ workspace "furtivehook-t9"
             "NDEBUG",
         }
         
-        optimize "off"
+        optimize "full"
         runtime "release"
         symbols "on"
 

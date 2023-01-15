@@ -135,7 +135,7 @@ namespace events::instant_message
 			
 			return false;
 		});
-
+		
 		scheduler::on_game_initialized([]()
 		{
 			if (const auto lobby = game::dwGetLobby(0))

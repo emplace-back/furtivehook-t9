@@ -168,7 +168,7 @@ namespace rendering::dx
 				ImGui::GetIO().IniFilename = nullptr;
 
 				menu::set_style();
-				input::initialize(hwnd);
+				input::hwnd_ = hwnd;
 			}
 		}
 	}

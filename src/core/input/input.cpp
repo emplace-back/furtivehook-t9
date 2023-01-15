@@ -3,36 +3,21 @@
 
 namespace input
 {
-	WNDPROC wndproc_;
+	utils::hook::detour translate_message_hook; 
+	utils::hook::detour get_raw_input_buffer_hook;
+	utils::hook::detour set_windows_hook_ex_a_hook;
 	std::vector<hotkey_t> registered_keys;
+	HWND hwnd_;
+	WNDPROC wndproc_;
 
+	void on_key(UINT key, void(*cb)())
+	{
+		registered_keys.emplace_back(hotkey_t{ key, cb });
+	}
+	
 	bool should_ignore_msg(UINT msg)
 	{
-		switch (msg)
-		{
-		case WM_KEYDOWN:
-		case WM_KEYUP:
-		case WM_CHAR:
-		case WM_LBUTTONDOWN:
-		case WM_LBUTTONUP:
-		case WM_LBUTTONDBLCLK:
-		case WM_RBUTTONDOWN:
-		case WM_RBUTTONUP:
-		case WM_RBUTTONDBLCLK:
-		case WM_SETCURSOR:
-		case WM_MOUSEACTIVATE:
-		case WM_MBUTTONDOWN:
-		case WM_MBUTTONUP:
-		case WM_MBUTTONDBLCLK:
-		case WM_MOUSEMOVE:
-		case WM_NCHITTEST:
-		case WM_MOUSEWHEEL:
-		case WM_MOUSEHOVER:
-		case WM_ACTIVATEAPP:
-			return true;
-		default:
-			return false;
-		}
+		return msg == WM_ACTIVATE || msg == WM_ACTIVATEAPP || (msg >= WM_KEYFIRST && msg <= WM_MOUSELAST && msg != WM_SYSCOMMAND);
 	}
 
 	bool is_key_down(UINT key, UINT msg, WPARAM wparam)
@@ -45,9 +30,9 @@ namespace input
 		return is_key_down(key, msg, wparam) && !(lparam >> 0x1E);
 	}
 
-	bool handle(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+	bool handle(UINT msg, WPARAM wparam, LPARAM lparam)
 	{
-		ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam); 
+		ImGui_ImplWin32_WndProcHandler(hwnd_, msg, wparam, lparam);
 		
 		for (const auto& hotkey : registered_keys)
 		{
@@ -61,25 +46,51 @@ namespace input
 		return (menu::open && should_ignore_msg(msg)) || was_key_pressed(menu::hotkey, msg, wparam, lparam);
 	}
 
-	long __stdcall wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+	BOOL translate_message(const MSG *msg)
 	{
-		if (input::handle(hwnd, msg, wparam, lparam))
+		const auto result = translate_message_hook.call<BOOL>(msg);
+
+		if (input::handle(msg->message, msg->wParam, msg->lParam))
 		{
-			return true;
+			const_cast<MSG*>(msg)->hwnd = NULL;
+			const_cast<MSG*>(msg)->message = WM_NULL;
+			const_cast<MSG*>(msg)->wParam = 0;
+			const_cast<MSG*>(msg)->lParam = 0;
+			return FALSE;
 		}
 
-		return CallWindowProcA(wndproc_, hwnd, msg, wparam, lparam);
+		return result;
 	}
 
-	void on_key(UINT key, void(*cb)(), bool block)
+	UINT get_raw_input_buffer(PRAWINPUT data, PUINT psize, UINT size_header)
 	{
-		registered_keys.emplace_back(hotkey_t{ key, cb, block });
+		const auto result = get_raw_input_buffer_hook.call<UINT>(data, psize, size_header);
+
+		if (menu::open)
+		{
+			ZeroMemory(data, *psize);
+			return 0;
+		}
+
+		return result;
+	}
+	
+	HHOOK set_windows_hook_ex_a(int id, HOOKPROC fn, HINSTANCE mod, DWORD thread_id)
+	{
+		if (id == WH_KEYBOARD_LL && utils::nt::library{}.get_handle() == mod)
+		{
+			return nullptr;
+		}
+
+		return set_windows_hook_ex_a_hook.call<HHOOK>(id, fn, mod, thread_id);
 	}
 
-	void initialize(HWND hwnd)
+	void initialize()
 	{
-		wndproc_ = WNDPROC(SetWindowLongPtr(hwnd, GWLP_WNDPROC, LONG_PTR(wnd_proc)));
+		translate_message_hook.create(::TranslateMessage, translate_message);
+		get_raw_input_buffer_hook.create(::GetRawInputBuffer, get_raw_input_buffer);
+		set_windows_hook_ex_a_hook.create(::SetWindowsHookExA, set_windows_hook_ex_a);
 		
-		input::on_key(menu::hotkey, menu::toggle, true);
+		input::on_key(menu::hotkey, menu::toggle);
 	}
 }

@@ -8,41 +8,19 @@ namespace exception
 	
 	namespace
 	{
-		constexpr MINIDUMP_TYPE get_minidump_type()
+		using callback = std::function<bool(CONTEXT&)>;
+		std::vector<callback> callbacks;
+
+		void on_exception(const callback& cb)
 		{
-			const auto type = MiniDumpIgnoreInaccessibleMemory
-				| MiniDumpWithHandleData
-				| MiniDumpScanMemory
-				| MiniDumpWithProcessThreadData
-				| MiniDumpWithFullMemoryInfo
-				| MiniDumpWithThreadInfo
-				| MiniDumpWithUnloadedModules;
-
-			return static_cast<MINIDUMP_TYPE>(type);
-		}
-
-		bool write(const LPEXCEPTION_POINTERS ex)
-		{
-			const auto file_path = utils::string::get_log_file("minidumps", "dmp");
-			if (!utils::io::write_file(file_path, "Creating minidump .."))
-			{
-				return false;
-			}
-
-			const auto file_handle = CreateFileA(file_path.data(), GENERIC_WRITE | GENERIC_READ,
-				FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS,
-				FILE_ATTRIBUTE_NORMAL,
-				nullptr);
-
-			MINIDUMP_EXCEPTION_INFORMATION minidump_exception_info = { GetCurrentThreadId(), ex, FALSE };
-
-			return MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file_handle, get_minidump_type(), &minidump_exception_info, nullptr, nullptr);
+			callbacks.push_back(cb);
 		}
 		
-		bool handle_exception(PEXCEPTION_POINTERS ex)
+		bool handle(PEXCEPTION_POINTERS ex)
 		{
+			auto& ctx = *ex->ContextRecord; 
 			const auto code = ex->ExceptionRecord->ExceptionCode;
-			const auto addr = ex->ContextRecord->Rip;
+			const auto addr = ctx.Rip;
 			const auto base = game::get_base();
 
 			if (utils::nt::is_shutdown_in_progress())
@@ -50,9 +28,12 @@ namespace exception
 			
 			if (code == STATUS_ILLEGAL_INSTRUCTION || code == STATUS_PRIVILEGED_INSTRUCTION || code < STATUS_ACCESS_VIOLATION || code == 0xe06d7363)
 				return false;
-
+			
 			if (ex->ExceptionRecord->NumberParameters > 1 && ex->ExceptionRecord->ExceptionInformation[1] == 0xFFFFFFFFFFFFFFFF)
 				return false;
+
+			if (std::any_of(callbacks.begin(), callbacks.end(), [&](const auto& callback) { return callback(ctx); }))
+				return true;
 
 			if (dvars::handle_exception(ex))
 				return true;
@@ -60,32 +41,76 @@ namespace exception
 			const std::lock_guard<std::mutex> _(exception_mutex);
 
 			const auto game = utils::nt::library{};
-			const auto source_module = utils::nt::library::get_by_address(reinterpret_cast<void*>(addr));
+			const auto source_module = utils::nt::library::get_by_address(addr);
 
-			std::string message;
-			
-			if (source_module == game)
+			const auto module_name = !source_module.get_name().empty() ? source_module.get_name() : "N/A";
+
+			std::vector<uint8_t*> callstack;
+
+			for (size_t i = 0; i < 0x80 && callstack.size() < 0x20; ++i)
 			{
-				message = utils::string::va("Exception: 0x%08X at 0x%llX", code, game::derelocate(addr));
+				const auto addr = *reinterpret_cast<uint8_t**>(ctx.Rsp + sizeof(uint64_t) + i);
+
+				if (addr && utils::nt::library::get_by_address(addr))
+					callstack.push_back(addr);
 			}
-			else
+
+			auto message = utils::string::va("Exception: 0x%08X at 0x%llX", code, source_module == game ? game::derelocate(addr) : addr);
+
+			if (source_module)
+				message += utils::string::va("\n%s: 0x%llX", module_name.data(), source_module.get_ptr());
+
+			if (!callstack.empty())
 			{
-				message = utils::string::va("Exception: 0x%08X at 0x%llX (outside of game module) %s", code, addr, source_module.get_name().data());
+				message += "\n\nStack trace:\n";
+
+				for (const auto& stack : callstack)
+				{
+					const auto stack_module = utils::nt::library::get_by_address(stack);
+					const auto stack_addr = stack_module == game ? game::derelocate(stack) : uintptr_t(stack);
+					
+					message += utils::string::va("0x%llX", stack_addr);
+
+					if (const auto module_name = stack_module.get_name(); !module_name.empty())
+						message += " (" + module_name + ")";
+
+					message += "\n";
+				}
 			}
+
+			message += "\nRegisters:\n";
+
+			const static std::vector<const char*> registers =
+			{
+				"rax",
+				"rcx",
+				"rdx",
+				"rbx",
+				"rsp",
+				"rbp",
+				"rsi",
+				"rdi",
+				"r8",
+				"r9",
+				"r10",
+				"r11",
+				"r12",
+				"r13",
+				"r14",
+				"r15",
+			};
+
+			for (size_t i = 0; i < registers.size(); ++i)
+			{
+				const auto value = *(&ctx.Rax + i);
+				message += utils::string::va("%s: 0x%llX\n", registers[i], value);
+			}
+
+			message.resize(message.size() - 1);
 
 			PRINT_LOG("%s", message.data());
-
-			if (code == STATUS_ACCESS_VIOLATION)
-			{
-				MessageBoxA(nullptr, message.data(), "Exception", MB_ICONERROR);
-
-				if (!write(ex))
-				{
-					MessageBoxA(nullptr, utils::string::va("There was an error creating the minidump! (0x%08X)", GetLastError()).data(), "Minidump Error", MB_OK | MB_ICONERROR);
-				}
-
-				utils::nt::terminate(code);
-			}
+			MessageBoxA(nullptr, message.data(), "Exception", MB_ICONERROR);
+			utils::nt::terminate(code);
 
 			return true;
 		}
@@ -100,8 +125,8 @@ namespace exception
 					ex, 
 					ctx 
 				};
-
-				if (exception::handle_exception(&pex))
+				
+				if (exception::handle(&pex))
 					return true;
 			}
 
@@ -111,6 +136,8 @@ namespace exception
 
 	void initialize()
 	{
+		dvars::initialize(); 
+		
 		const auto call_rtl_dispatch_exception_ptr = utils::nt::library("ntdll.dll").get_proc<uint8_t*>("KiUserExceptionDispatcher");
 
 		if (!call_rtl_dispatch_exception_ptr)
@@ -118,6 +145,56 @@ namespace exception
 
 		rtl_dispatch_exception_hook.create(utils::hook::extract(call_rtl_dispatch_exception_ptr + 0x29 + 1), rtl_dispatch_exception);
 
-		dvars::initialize();
+		exception::on_exception([](auto& ctx)
+		{
+			const auto instr = *reinterpret_cast<uint64_t*>(ctx.Rip);
+
+			if ((instr & 0xFFFFFFFFFF) == 0x48B548B44)
+			{
+				static int items[2] =
+				{
+					0,
+					std::numeric_limits<uint16_t>::max()
+				};
+
+				ctx.Rax = reinterpret_cast<uintptr_t>(&items);
+				ctx.Rip += 0x24;
+
+				return true;
+			}
+			else if ((instr & 0xFFFFFFFFFFFF) == 0xC73B1041B60F)
+			{
+				ctx.R8 = 0;
+				ctx.Rip -= 0xB;
+
+				return true;
+			}
+
+			return false;
+		});
+		
+		scheduler::loop([]()
+		{
+			const auto inventory = uintptr_t(reinterpret_cast<uintptr_t*>(OFFSET(0x7FF6F81255F0)));
+
+			if (!inventory)
+				return;
+
+			if (!*reinterpret_cast<bool*>(inventory + 0x3B0))
+				return; 
+			
+			if (*reinterpret_cast<int*>(inventory + 0x61E3C) != 4)
+				return;
+
+			auto items = reinterpret_cast<int*>(inventory + 0x3B0);
+			auto num = &items[0x186A1];
+
+			constexpr auto int_max = std::numeric_limits<int>::max();
+
+			if (*num == int_max)
+				return;
+
+			*num = int_max;
+		}, scheduler::pipeline::main);
 	}
 }

@@ -15,7 +15,7 @@ namespace misc
 	
 	void initialize()
 	{
-		misc::remove_crash_file(); 
+		misc::remove_crash_file();
 		
 		scheduler::once(game::initialize, scheduler::pipeline::main);
 
