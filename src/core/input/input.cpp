@@ -70,15 +70,16 @@ namespace input
 			
 			constexpr auto repeat_count = 1;
 			const auto prev_state = wparam == WM_KEYUP;
+			const auto transition = prev_state;
 
 			const auto key_lparam = static_cast<LPARAM>(repeat_count
 				| (kb->scanCode << 16)
 				| ((kb->flags & 0x1) << 24)
 				| ((kb->flags & 0x10) << 29)
 				| (prev_state << 30)
-				| (prev_state << 31));
+				| (transition << 31));
 
-			if (should_ignore_msg(static_cast<UINT>(wparam), kb->vkCode, key_lparam))
+			if (should_ignore_msg(static_cast<UINT>(wparam), static_cast<WPARAM>(kb->vkCode), key_lparam))
 			{
 				return 0;
 			}
