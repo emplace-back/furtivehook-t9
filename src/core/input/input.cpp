@@ -4,8 +4,8 @@
 namespace input
 {
 	utils::hook::detour translate_message_hook; 
+	utils::hook::detour dispatch_hook_a_hook;
 	utils::hook::detour get_raw_input_buffer_hook;
-	utils::hook::detour set_windows_hook_ex_a_hook;
 	std::vector<hotkey_t> registered_keys;
 	HWND hwnd_;
 	WNDPROC wndproc_;
@@ -13,11 +13,6 @@ namespace input
 	void on_key(UINT key, void(*cb)())
 	{
 		registered_keys.emplace_back(hotkey_t{ key, cb });
-	}
-	
-	bool should_ignore_msg(UINT msg)
-	{
-		return msg == WM_ACTIVATE || msg == WM_ACTIVATEAPP || (msg >= WM_KEYFIRST && msg <= WM_MOUSELAST && msg != WM_SYSCOMMAND);
 	}
 
 	bool is_key_down(UINT key, UINT msg, WPARAM wparam)
@@ -27,7 +22,13 @@ namespace input
 
 	bool was_key_pressed(UINT key, UINT msg, WPARAM wparam, LPARAM lparam)
 	{
-		return is_key_down(key, msg, wparam) && !(lparam >> 0x1E);
+		return input::is_key_down(key, msg, wparam) && !(lparam >> 0x1E);
+	}
+
+	bool should_ignore_msg(UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		const auto ignore = msg == WM_ACTIVATE || msg == WM_ACTIVATEAPP || (msg >= WM_KEYFIRST && msg <= WM_MOUSELAST && msg != WM_SYSCOMMAND);
+		return (menu::open && ignore) || input::was_key_pressed(menu::hotkey, msg, wparam, lparam);
 	}
 
 	bool handle(UINT msg, WPARAM wparam, LPARAM lparam)
@@ -39,11 +40,11 @@ namespace input
 			if (menu::open && hotkey.key != menu::hotkey)
 				continue;
 
-			if (was_key_pressed(hotkey.key, msg, wparam, lparam))
+			if (input::was_key_pressed(hotkey.key, msg, wparam, lparam))
 				hotkey.func();
 		}
 
-		return (menu::open && should_ignore_msg(msg)) || was_key_pressed(menu::hotkey, msg, wparam, lparam);
+		return input::should_ignore_msg(msg, wparam, lparam);
 	}
 
 	BOOL translate_message(const MSG *msg)
@@ -52,16 +53,40 @@ namespace input
 
 		if (input::handle(msg->message, msg->wParam, msg->lParam))
 		{
-			const_cast<MSG*>(msg)->hwnd = NULL;
-			const_cast<MSG*>(msg)->message = WM_NULL;
-			const_cast<MSG*>(msg)->wParam = 0;
-			const_cast<MSG*>(msg)->lParam = 0;
+			ZeroMemory(const_cast<MSG*>(msg), sizeof msg);
 			return FALSE;
 		}
 
 		return result;
 	}
 
+	LRESULT dispatch_hook_a(int code, WPARAM wparam, LPARAM lparam, HOOKPROC fn)
+	{
+		const auto hook_id = static_cast<uint16_t>(code >> 0x10);
+
+		if (hook_id == WH_KEYBOARD_LL)
+		{
+			const auto kb = reinterpret_cast<KBDLLHOOKSTRUCT*>(lparam);
+			
+			constexpr auto repeat_count = 1;
+			const auto prev_state = wparam == WM_KEYUP;
+
+			const auto key_lparam = static_cast<LPARAM>(repeat_count
+				| (kb->scanCode << 16)
+				| ((kb->flags & 0x1) << 24)
+				| ((kb->flags & 0x10) << 29)
+				| (prev_state << 30)
+				| (prev_state << 31));
+
+			if (should_ignore_msg(static_cast<UINT>(wparam), kb->vkCode, key_lparam))
+			{
+				return 0;
+			}
+		}
+
+		return dispatch_hook_a_hook.call<LRESULT>(code, wparam, lparam, fn);
+	}
+	
 	UINT get_raw_input_buffer(PRAWINPUT data, PUINT psize, UINT size_header)
 	{
 		const auto result = get_raw_input_buffer_hook.call<UINT>(data, psize, size_header);
@@ -74,22 +99,17 @@ namespace input
 
 		return result;
 	}
-	
-	HHOOK set_windows_hook_ex_a(int id, HOOKPROC fn, HINSTANCE mod, DWORD thread_id)
-	{
-		if (id == WH_KEYBOARD_LL && utils::nt::library{}.get_handle() == mod)
-		{
-			return nullptr;
-		}
-
-		return set_windows_hook_ex_a_hook.call<HHOOK>(id, fn, mod, thread_id);
-	}
 
 	void initialize()
 	{
+		const auto dispatch_hook_a_ptr = utils::hook::scan_pattern("user32.dll", signatures::dispatch_hook_a_ptr);
+
+		if (!dispatch_hook_a_ptr)
+			return;
+		
+		dispatch_hook_a_hook.create(dispatch_hook_a_ptr, dispatch_hook_a);
 		translate_message_hook.create(::TranslateMessage, translate_message);
 		get_raw_input_buffer_hook.create(::GetRawInputBuffer, get_raw_input_buffer);
-		set_windows_hook_ex_a_hook.create(::SetWindowsHookExA, set_windows_hook_ex_a);
 		
 		input::on_key(menu::hotkey, menu::toggle);
 	}

@@ -23,4 +23,5 @@ namespace offsets
 
 	constexpr auto s_lobbyMsgName = 0x7FF6EF3B77C0;
 	constexpr auto s_clientSession = 0x7FF6F45F2D50;
+	constexpr auto playerInventory = 0x7FF6F81255F0;
 }

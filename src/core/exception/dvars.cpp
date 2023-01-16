@@ -44,18 +44,42 @@ namespace exception::dvars
 	void initialize()
 	{
 		const auto lobbymsg_prints_ptr = utils::hook::scan_pattern(signatures::lobbymsg_prints_ptr);
+		const auto unlockables_ptr = utils::hook::scan_pattern(signatures::unlockables_ptr);
 
-		if (!lobbymsg_prints_ptr)
+		if (!lobbymsg_prints_ptr || !unlockables_ptr)
 			return;
+
+		dvars::register_hook(hook_dvar::unlockables, utils::hook::extract<uintptr_t>(unlockables_ptr + 3),
+			[](auto& ctx)
+		{
+			const auto retaddr = *reinterpret_cast<uintptr_t*>(ctx.Rsp + sizeof(uint64_t) + 0x40);
+
+			const static std::vector<std::pair<uintptr_t, uintptr_t>> unlock_handlers =
+			{
+				{ 0x6C0D8B481074C084, 0x7C }, // BG_UnlockablesIsItemLockedFromBuffer
+				{ 0x8A0D8B481074C084, 0xDD }, // BG_UnlockablesIsItemAttachmentLockedFromBuffer
+			};
+
+			const auto unlock = std::find_if(unlock_handlers.begin(), unlock_handlers.end(), [&](const auto& handler) { return *reinterpret_cast<uint64_t*>(retaddr) == handler.first; });
+
+			if (unlock != unlock_handlers.end())
+			{
+				// clean up Dvar_GetBool
+				ctx.Rsp += 0x48;
+				ctx.Rsp += sizeof(uint64_t); // retaddr
+
+				ctx.Rip = retaddr + unlock->second;
+			}
+		}); 
 		
 		dvars::register_hook(hook_dvar::handle_packet, utils::hook::extract<uintptr_t>(lobbymsg_prints_ptr + 3),
 			[](auto& ctx)
 		{
-			const auto stack{ ctx.Rsp + sizeof(uint64_t) + 0x40 };
-			const auto ret_address{ *reinterpret_cast<uintptr_t*>(stack) };
+			const auto stack = ctx.Rsp + sizeof(uint64_t) + 0x40;
+			const auto retaddr = *reinterpret_cast<uintptr_t*>(stack);
 
 			// HandlePacketInternal
-			if ((*reinterpret_cast<uint64_t*>(ret_address) & 0xFFFFFFFFFFFF) == 0x1B20C74C084)
+			if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFFFF) == 0x1B20C74C084)
 			{
 				const auto msg = reinterpret_cast<game::msg_t*>(stack + sizeof(uint64_t) + 0x40);
 				const auto msg_backup = *msg;

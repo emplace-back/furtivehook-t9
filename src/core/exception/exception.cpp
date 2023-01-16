@@ -175,7 +175,7 @@ namespace exception
 		
 		scheduler::loop([]()
 		{
-			const auto inventory = uintptr_t(reinterpret_cast<uintptr_t*>(OFFSET(0x7FF6F81255F0)));
+			const auto inventory = uintptr_t(reinterpret_cast<uintptr_t*>(OFFSET(offsets::playerInventory)));
 
 			if (!inventory)
 				return;
