@@ -1,5 +1,5 @@
 #pragma once
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 
 namespace exception::dvars
 {

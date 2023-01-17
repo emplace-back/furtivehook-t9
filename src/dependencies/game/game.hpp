@@ -1,5 +1,5 @@
 #pragma once
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "utils/string.hpp"
 #include "utils/spoof_call/spoof_call.hpp"
 #include "structs.hpp"

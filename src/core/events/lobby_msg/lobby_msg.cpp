@@ -1,4 +1,4 @@
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "lobby_msg.hpp"
 
 namespace events::lobby_msg

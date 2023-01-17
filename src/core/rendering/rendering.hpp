@@ -1,5 +1,5 @@
 #pragma once
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include <d3d12.h>
 #include <dxgi1_4.h>
 

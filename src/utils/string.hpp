@@ -1,5 +1,5 @@
 #pragma once
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "../dependencies/game/game.hpp"
 
 template <class Type, size_t n>

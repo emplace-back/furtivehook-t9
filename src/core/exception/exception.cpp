@@ -1,4 +1,4 @@
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "exception.hpp"
 
 namespace exception
@@ -76,9 +76,11 @@ namespace exception
 
 					message += "\n";
 				}
+
+				message.resize(message.size() - 1);
 			}
 
-			message += "\nRegisters:\n";
+			message += "\n\nRegisters:\n";
 
 			const static std::vector<const char*> registers =
 			{
@@ -107,12 +109,12 @@ namespace exception
 			}
 
 			message.resize(message.size() - 1);
-
+			
 			PRINT_LOG("%s", message.data());
 			MessageBoxA(nullptr, message.data(), "Exception", MB_ICONERROR);
 			utils::nt::terminate(code);
 
-			return true;
+			return false;
 		}
 
 		bool __stdcall rtl_dispatch_exception(PEXCEPTION_RECORD ex, PCONTEXT ctx)

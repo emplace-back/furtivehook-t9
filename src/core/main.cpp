@@ -1,4 +1,4 @@
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 
 BOOL __stdcall DllMain(const HMODULE module, const DWORD reason, const LPVOID /*reserved*/)
 {

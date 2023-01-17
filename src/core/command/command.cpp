@@ -1,4 +1,4 @@
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "command.hpp"
 
 namespace command

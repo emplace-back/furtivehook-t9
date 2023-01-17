@@ -1,4 +1,4 @@
-#include "dependencies/std_include.hpp"
+#include "dependencies/stdafx.hpp"
 #include "dx.hpp"
 
 namespace rendering::dx
