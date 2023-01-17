@@ -197,7 +197,6 @@ namespace utils::hook
 	std::vector<uint8_t> move_hook(const uintptr_t address);
 	std::vector<uint8_t> move_hook(const void* pointer);
 	void* assemble(const std::function<void(assembler&)>& asm_function);
-	void* follow_branch(void* address);
 
 	template <typename T> void copy(const uintptr_t address, const T data, const size_t length)
 	{

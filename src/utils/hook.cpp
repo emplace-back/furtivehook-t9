@@ -323,7 +323,7 @@ namespace utils::hook
 		{
 			original_data.insert(original_data.begin(), data, data + 6);
 
-			const auto target = follow_branch(data);
+			const auto target = extract<uint8_t*>(data + 1);
 			nop(data, 1);
 			jump(data + 1, target);
 		}
@@ -362,17 +362,5 @@ namespace utils::hook
 		runtime.add(&result, &code);
 
 		return result;
-	}
-
-	void* follow_branch(void* address)
-	{
-		const auto data = static_cast<uint8_t*>(address);
-
-		if (*data != 0xE8 && *data != 0xE9)
-		{
-			throw std::runtime_error("No branch instruction found");
-		}
-
-		return extract<void*>(data + 1);
 	}
 }

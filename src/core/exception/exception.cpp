@@ -51,7 +51,7 @@ namespace exception
 			{
 				const auto addr = *reinterpret_cast<uint8_t**>(ctx.Rsp + sizeof(uint64_t) + i);
 
-				if (addr && utils::nt::library::get_by_address(addr))
+				if (utils::nt::library::get_by_address(addr))
 					callstack.push_back(addr);
 			}
 
@@ -104,7 +104,11 @@ namespace exception
 
 			for (size_t i = 0; i < registers.size(); ++i)
 			{
-				const auto value = *(&ctx.Rax + i);
+				auto value = *(&ctx.Rax + i);
+				
+				if (utils::nt::library::get_by_address(value) == game)
+					value = game::derelocate(value);
+				
 				message += utils::string::va("%s: 0x%llX\n", registers[i], value);
 			}
 
@@ -138,14 +142,14 @@ namespace exception
 
 	void initialize()
 	{
-		dvars::initialize(); 
+		const auto ki_user_exception_dispatcher = utils::nt::library("ntdll.dll").get_proc<uint8_t*>("KiUserExceptionDispatcher");
 		
-		const auto call_rtl_dispatch_exception_ptr = utils::nt::library("ntdll.dll").get_proc<uint8_t*>("KiUserExceptionDispatcher");
-
-		if (!call_rtl_dispatch_exception_ptr)
+		if (!ki_user_exception_dispatcher)
 			return;
 
-		rtl_dispatch_exception_hook.create(utils::hook::extract(call_rtl_dispatch_exception_ptr + 0x29 + 1), rtl_dispatch_exception);
+		rtl_dispatch_exception_hook.create(utils::hook::extract(ki_user_exception_dispatcher + 0x29 + 1), rtl_dispatch_exception);
+
+		dvars::initialize();
 
 		exception::on_exception([](auto& ctx)
 		{
