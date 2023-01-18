@@ -11,7 +11,7 @@ namespace offsets
 	constexpr auto LobbyJoin_ConnectToHost = 0x7FF6EC57EAC0;
 	constexpr auto LobbyNetChan_GetLobbyChannel = 0x7FF6EC68B1F0;
 	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF6EA837B30;
-	constexpr auto Live_GetXuid = 0x7FF6EDC6A440;
+	constexpr auto LiveUser_GetXuid = 0x7FF6EDC6A440;
 	constexpr auto InfoResponse = 0x7FF6EB190E80;
 	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF6EC559B20;
 	constexpr auto dwGetLobby = 0x7FF6EBF0C5B0;

@@ -8,7 +8,6 @@ namespace input
 	utils::hook::detour get_raw_input_buffer_hook;
 	std::vector<hotkey_t> registered_keys;
 	HWND hwnd_;
-	WNDPROC wndproc_;
 
 	void on_key(UINT key, void(*cb)())
 	{

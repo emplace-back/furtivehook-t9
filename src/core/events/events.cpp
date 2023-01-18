@@ -37,7 +37,7 @@ namespace events
 				{ 0xCE8B0C578B, *(rsp + 16 - 6) },
 			};
 
-			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [&](const auto& handler) { return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; });
+			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [=](const auto& handler) { return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; });
 
 			if (oob != oob_handlers.end())
 			{

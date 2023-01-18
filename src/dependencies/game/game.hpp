@@ -1,12 +1,11 @@
 #pragma once
-#include "dependencies/stdafx.hpp"
 #include "utils/string.hpp"
-#include "utils/spoof_call/spoof_call.hpp"
 #include "structs.hpp"
 #include "offsets.hpp"
 #include "signatures.hpp"
 
 #define OFFSET(x) game::relocate(x)
+#define FUNC(NAME, TYPE) const static auto NAME = reinterpret_cast<std::add_pointer<TYPE>::type>(OFFSET(offsets::NAME))
 
 namespace game 
 {
@@ -67,12 +66,12 @@ namespace game
 	template <typename T = void, typename... Args>
 	inline auto call(const uintptr_t address, Args ... args)
 	{
-		return spoof_call(reinterpret_cast<T(*)(Args...)>(relocate(address)), args...);
+		return utils::spoof_call(reinterpret_cast<T(*)(Args...)>(OFFSET(address)), args...);
 	}
 
-	const static auto LiveUser_GetXuid = reinterpret_cast<uint64_t(*)(int)>(OFFSET(offsets::Live_GetXuid));
-	const static auto Live_IsUserSignedInToDemonware = reinterpret_cast<bool(*)(int)>(OFFSET(offsets::Live_IsUserSignedInToDemonware));
-	const static auto dwGetLobby = reinterpret_cast<uintptr_t(*)(int)>(OFFSET(offsets::dwGetLobby));
-	const static auto dwNetadrToCommonAddr = reinterpret_cast<bool(*)(netadr_t, void*, const uint32_t, void*)>(OFFSET(offsets::dwNetadrToCommonAddr));
-	const static auto Sys_GetTLS = reinterpret_cast<TLSData*(*)()>(OFFSET(offsets::Sys_GetTLS));
+	FUNC(LiveUser_GetXuid, uint64_t(int));
+	FUNC(Live_IsUserSignedInToDemonware, bool(int));
+	FUNC(dwGetLobby, uintptr_t(int));
+	FUNC(dwNetadrToCommonAddr, bool(netadr_t, void*, const uint32_t, void*));
+	FUNC(Sys_GetTLS, TLSData*());
 }

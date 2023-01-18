@@ -1,11 +1,18 @@
 #pragma once
 #include "dependencies/stdafx.hpp"
+#include "utils/spoof_call/spoof_call.hpp"
 
 namespace utils
 {
 	bool are_addresses_equal(const game::netadr_t& a, const game::netadr_t& b);
 	std::string get_sender_string(const game::netadr_t& from);
 	void print_log(const char* msg, ...);
+
+	template <typename T, typename... Args>
+	static inline auto spoof_call(T(*fn)(Args...), Args... args) 
+	{
+		return ::spoof_call(reinterpret_cast<void*>(OFFSET(offsets::jmp_qword_ptr_rbx)), fn, args...);
+	}
 
 	template <class F>
 	class final_action
@@ -33,7 +40,6 @@ namespace utils
 			if (invoke_) f_();
 		}
 
-		// Added by momo5502
 		void cancel()
 		{
 			invoke_ = false;

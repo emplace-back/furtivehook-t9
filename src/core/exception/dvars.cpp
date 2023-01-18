@@ -60,7 +60,7 @@ namespace exception::dvars
 				{ 0x8A0D8B481074C084, 0xDD }, // BG_UnlockablesIsItemAttachmentLockedFromBuffer
 			};
 
-			const auto unlock = std::find_if(unlock_handlers.begin(), unlock_handlers.end(), [&](const auto& handler) { return *reinterpret_cast<uint64_t*>(retaddr) == handler.first; });
+			const auto unlock = std::find_if(unlock_handlers.begin(), unlock_handlers.end(), [=](const auto& handler) { return *reinterpret_cast<uint64_t*>(retaddr) == handler.first; });
 
 			if (unlock != unlock_handlers.end())
 			{

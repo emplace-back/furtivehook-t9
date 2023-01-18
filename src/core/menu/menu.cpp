@@ -355,7 +355,10 @@ namespace menu
 
 					if (ImGui::MenuItem("Send popup", nullptr, nullptr, target_id && !target_id_input.empty()))
 					{
-						exploit::instant_message::send_popup(target_id);
+						scheduler::once([=]()
+						{
+							exploit::instant_message::send_popup(target_id);
+						}, scheduler::pipeline::main); 
 					}
 					
 					ImGui::EndTabItem();

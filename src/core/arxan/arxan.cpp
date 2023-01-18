@@ -5,9 +5,8 @@
 
 namespace arxan
 {
-	utils::hook::detour get_thread_context_hook;
+	utils::hook::detour get_window_text_a_hook; 
 	utils::hook::detour nt_create_mutant_hook;
-	utils::hook::detour get_window_text_a_hook;
 	utils::hook::detour nt_query_system_information_hook;
 	utils::hook::detour nt_query_information_process_hook;
 	
@@ -59,35 +58,6 @@ namespace arxan
 
 		return remove_keyword_from_string(unicode_string);
 	}
-	
-	BOOL __stdcall get_thread_context(HANDLE thread_handle, LPCONTEXT context)
-	{
-		constexpr auto debug_registers_flag = (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
-
-		if (context && context->ContextFlags & debug_registers_flag)
-		{
-			const auto* source = _ReturnAddress();
-			const auto game = utils::nt::library{};
-			const auto source_module = utils::nt::library::get_by_address(source);
-
-			if (source_module == game)
-			{
-				context->ContextFlags &= ~debug_registers_flag;
-			}
-		}
-
-		return get_thread_context_hook.call<BOOL>(thread_handle, context);
-	}
-
-	NTSTATUS __stdcall nt_create_mutant(PHANDLE handle, ACCESS_MASK access, POBJECT_ATTRIBUTES attributes, BOOLEAN owner)
-	{
-		if (attributes)
-		{
-			remove_keyword_from_string(*attributes->ObjectName);
-		}
-		
-		return nt_create_mutant_hook.call<NTSTATUS>(handle, access, attributes, owner);
-	}
 
 	int __stdcall get_window_text_a(HWND window, char* string, size_t max_count)
 	{
@@ -108,6 +78,16 @@ namespace arxan
 		return count;
 	}
 
+	NTSTATUS __stdcall nt_create_mutant(PHANDLE handle, ACCESS_MASK access, POBJECT_ATTRIBUTES attributes, BOOLEAN owner)
+	{
+		if (const auto attr = attributes; attr && attr->ObjectName)
+		{
+			remove_keyword_from_string(*attr->ObjectName);
+		}
+
+		return nt_create_mutant_hook.call<NTSTATUS>(handle, access, attributes, owner);
+	}
+	
 	NTSTATUS __stdcall nt_query_information_process(HANDLE handle, PROCESSINFOCLASS info_class, void* info, uint32_t info_length, uint32_t* return_length)
 	{
 		const auto status = nt_query_information_process_hook.call<NTSTATUS>(handle, info_class, info, info_length, return_length);
@@ -158,7 +138,6 @@ namespace arxan
 		nt_query_information_process_hook.create(ntdll.get_proc<uint8_t*>("NtQueryInformationProcess"), nt_query_information_process);
 		nt_query_system_information_hook.create(ntdll.get_proc<uint8_t*>("NtQuerySystemInformation"), nt_query_system_information);
 
-		get_thread_context_hook.create(utils::nt::library("kernelbase.dll").get_proc<uint8_t*>("GetThreadContext"), get_thread_context);
 		get_window_text_a_hook.create(::GetWindowTextA, get_window_text_a);
 	}
 }

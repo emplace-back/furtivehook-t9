@@ -16,6 +16,6 @@ namespace events::lobby_msg
 			{ "clientcount", 18 },
 		};
 
-		return std::any_of(patches.begin(), patches.end(), [&](const auto& p) { return p.first == key && static_cast<T>(value) > p.second; });
+		return std::any_of(patches.begin(), patches.end(), [=](const auto& p) { return p.first == key && static_cast<T>(value) > p.second; });
 	}
 }
