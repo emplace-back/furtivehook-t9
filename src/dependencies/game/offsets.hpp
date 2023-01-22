@@ -2,26 +2,26 @@
 
 namespace offsets
 {
-	constexpr auto dump_base = 0x7FF6E1080000;
-	constexpr auto jmp_qword_ptr_rbx = 0x7FF6FC97A72B;
+	constexpr auto dump_base = 0x7FF78EC30000;
+	constexpr auto jmp_qword_ptr_rbx = 0x7FF7A7FD5CDB;
 	
-	constexpr auto Cmd_TokenizeStringInternal = 0x7FF6EAC30670;
-	constexpr auto NET_OutOfBandData = 0x7FF6EAD5B5F0;
-	constexpr auto Netchan_SendMessage = 0x7FF6EAD5E860;
-	constexpr auto LobbyJoin_ConnectToHost = 0x7FF6EC57EAC0;
-	constexpr auto LobbyNetChan_GetLobbyChannel = 0x7FF6EC68B1F0;
-	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF6EA837B30;
-	constexpr auto LiveUser_GetXuid = 0x7FF6EDC6A440;
-	constexpr auto InfoResponse = 0x7FF6EB190E80;
-	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF6EC559B20;
-	constexpr auto dwGetLobby = 0x7FF6EBF0C5B0;
-	constexpr auto dwNetadrToCommonAddr = 0x7FF6EC05A320;
-	constexpr auto dwInstantSendMessage = 0x7FF6EBEDBB90;
-	constexpr auto Sys_GetTLS = 0x7FF6ED2BC490;
-	constexpr auto MSG_ReadStringLine = 0x7FF6E7036C20;
+	constexpr auto Cmd_TokenizeStringInternal = 0x7FF79868A8E0;
+	constexpr auto NET_OutOfBandData = 0x7FF7987BADD0;
+	constexpr auto Netchan_SendMessage = 0x7FF7987BE040;
+	constexpr auto LobbyJoin_ConnectToHost = 0x7FF799F69540;
+	constexpr auto LobbyNetChan_GetLobbyChannel = 0x7FF79A06DE60;
+	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF7982A5560;
+	constexpr auto LiveUser_GetXuid = 0x7FF79B62A5F0;
+	constexpr auto InfoResponse = 0x7FF798BE3580;
+	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF799F45550;
+	constexpr auto dwGetLobby = 0x7FF799913060;
+	constexpr auto dwNetadrToCommonAddr = 0x7FF799A5A2A0;
+	constexpr auto dwInstantSendMessage = 0x7FF7998E3300;
+	constexpr auto Sys_GetTLS = 0x7FF79AC835F0;
+	constexpr auto MSG_ReadStringLine = 0x7FF794B51230;
 	constexpr auto ret_com_switch_mode = 0x7FF6E6839AAB;
 
-	constexpr auto s_lobbyMsgName = 0x7FF6EF3B77C0;
-	constexpr auto s_clientSession = 0x7FF6F45F2D50;
-	constexpr auto playerInventory = 0x7FF6F81255F0;
+	constexpr auto s_lobbyMsgName = 0x7FF79CD6CAC0;
+	constexpr auto s_clientSession = 0x7FF7A1FC47D0;
+	constexpr auto playerInventory = 0x7FF7A5AF7070;
 }

