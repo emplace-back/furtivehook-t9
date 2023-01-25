@@ -189,7 +189,8 @@ namespace game
 		int cursize;
 		int readcount;
 		int bit;
-		char pad[0x21 - 4];
+		int lastEntityRef;
+		char pad[0x19];
 		bool overflowed;
 		bool readOnly;
 		char pad2[0x8];
@@ -197,6 +198,24 @@ namespace game
 		PackageType packageType;
 		char encodeFlags;
 
+		msg_t()
+		{
+			::ZeroMemory(this, sizeof(msg_t) - 0x10);
+			::memset(&this->pad, -1, 0x10);
+			this->lastEntityRef = -1;
+		}
+
+		template<class T, const size_t bufsize>
+		msg_t(T(&buf)[bufsize])
+		{
+			this->init(buf);
+		}
+
+		msg_t(void* buf, const size_t bufsize, const bool read_only)
+		{
+			this->init(buf, bufsize, read_only);
+		}
+		
 		auto get_data() const
 		{
 			return std::string{ reinterpret_cast<const char*>(this->data), static_cast<std::string::size_type>(this->cursize) };
@@ -206,7 +225,7 @@ namespace game
 		{
 			*this = {};
 
-			this->data = static_cast<char*>(buf);
+			this->data = reinterpret_cast<char*>(buf);
 			this->maxsize = static_cast<int>(bufsize);
 
 			if (read_only)

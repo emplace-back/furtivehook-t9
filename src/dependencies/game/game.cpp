@@ -66,9 +66,8 @@ namespace game
 		if (self != recipients.end())
 		{
 			char buffer[0x1000] = { 0 };
-			msg_t msg{};
+			msg_t msg(buffer);
 
-			msg.init(buffer, sizeof(buffer));
 			msg.write<uint8_t>('2');
 			msg.write<uint8_t>(type);
 			msg.write(message, message_size);

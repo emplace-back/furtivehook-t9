@@ -23,8 +23,7 @@ namespace events::instant_message
 
 		bool dispatch_message(const char* sender_name, const std::uint64_t sender_id, char* message, const uint32_t message_size)
 		{
-			game::msg_t msg{};
-			msg.init(message, message_size, true);
+			game::msg_t msg(message, message_size, true);
 
 			auto type{ 0ui8 };
 
@@ -77,7 +76,7 @@ namespace events::instant_message
 			return true;
 		});
 
-		instant_message::on_message('h', [=](auto& msg, const auto& sender_name, const auto& sender_id)
+		instant_message::on_message('h', [=](game::msg_t& msg, const auto& sender_name, const auto& sender_id)
 		{
 			const auto length{ msg.cursize - msg.readcount }; 
 		
@@ -85,10 +84,12 @@ namespace events::instant_message
 			msg.read(buffer, length);
 
 			if (msg.overflowed)
-				return false;
+				return true;
+
+			msg.init(buffer, length, true);
 			
-			if (!game::call<bool>(offsets::LobbyMsgRW_PrepReadMsg, &msg, buffer, length))
-				return false;
+			if (!msg.init_lobby_read())
+				return true;
 
 			if (lobby_msg::log_messages)
 				PRINT_LOG("Received lobby message <%s> from '%s' (%llu)", game::LobbyTypes_GetMsgTypeName(msg.type), sender_name, sender_id);
@@ -103,10 +104,10 @@ namespace events::instant_message
 				game::Msg_InfoResponse response{};
 				
 				if (!game::call<bool>(offsets::InfoResponse, &response, &msg))
-					return false;
+					return true;
 
 				if (response.nonce != friends::NONCE)
-					return false;
+					return true;
 
 				std::vector<uint64_t> sender_xuids{ sender_id };
 

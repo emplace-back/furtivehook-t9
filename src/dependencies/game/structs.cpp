@@ -30,6 +30,8 @@ namespace game
 		char msg_type_name[32] = { 0 };
 		this->read_string(msg_type_name);
 
+		const auto msg_backup = *this;
+
 		size_t i = 0;
 
 		while (!this->overflowed)
@@ -41,6 +43,8 @@ namespace game
 				return false;
 			}
 		}
+
+		*this = msg_backup;
 
 		return true;
 	}

@@ -13,7 +13,6 @@ namespace offsets
 	constexpr auto Live_IsUserSignedInToDemonware = 0x7FF7982A5560;
 	constexpr auto LiveUser_GetXuid = 0x7FF79B62A5F0;
 	constexpr auto InfoResponse = 0x7FF798BE3580;
-	constexpr auto LobbyMsgRW_PrepReadMsg = 0x7FF799F45550;
 	constexpr auto dwGetLobby = 0x7FF799913060;
 	constexpr auto dwNetadrToCommonAddr = 0x7FF799A5A2A0;
 	constexpr auto dwInstantSendMessage = 0x7FF7998E3300;
