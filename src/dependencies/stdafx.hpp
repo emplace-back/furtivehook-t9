@@ -1,5 +1,7 @@
 #pragma once
 
+#define no_init_all deprecated
+
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <stdio.h>

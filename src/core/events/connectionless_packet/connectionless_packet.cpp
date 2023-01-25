@@ -48,8 +48,8 @@ namespace events::connectionless_packet
 	{
 		if(header) msg->read<int>();
 		
-		char buffer[0x400] = { 0 };
-		game::call<char*>(offsets::MSG_ReadStringLine, msg, buffer, sizeof buffer);
+		char buffer[1024] = { 0 };
+		msg->read_string(buffer, true);
 
 		return handle_command(buffer, from, msg);
 	}

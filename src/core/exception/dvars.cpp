@@ -65,9 +65,7 @@ namespace exception::dvars
 			if (unlock != unlock_handlers.end())
 			{
 				// clean up Dvar_GetBool
-				ctx.Rsp += 0x48;
-				ctx.Rsp += sizeof(uint64_t); // retaddr
-
+				ctx.Rsp += 0x48 + sizeof(uint64_t);
 				ctx.Rip = retaddr + unlock->second;
 			}
 		}); 
@@ -78,10 +76,12 @@ namespace exception::dvars
 			const auto stack = ctx.Rsp + sizeof(uint64_t) + 0x40;
 			const auto retaddr = *reinterpret_cast<uintptr_t*>(stack);
 
+			const auto instr = *reinterpret_cast<uint64_t*>(retaddr);
+
 			// HandlePacketInternal
-			if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFFFF) == 0x1B20C74C084)
+			if(instr == 0x40244C8D48D78B48)
 			{
-				const auto msg = reinterpret_cast<game::msg_t*>(stack + sizeof(uint64_t) + 0x40);
+				const auto msg = reinterpret_cast<game::msg_t*>(ctx.Rdi);
 				const auto msg_backup = *msg;
 
 				if (events::lobby_msg::handle(
@@ -89,12 +89,23 @@ namespace exception::dvars
 					*reinterpret_cast<game::netadr_t*>(ctx.Rsi),
 					*msg))
 				{
-					msg->type = static_cast<game::MsgType>(game::MESSAGE_TYPE_NONE);
+					// clean up Dvar_GetBool
+					ctx.Rsp += 0x48 + sizeof(uint64_t);
+					ctx.Rip = retaddr + 0x11C;
 				}
 				else
 				{
 					*msg = msg_backup;
 				}
+			}
+			
+			// LobbyMsgRW_PrintDebugMessage
+			else if (instr == 0x357B801F7411FF83)
+			{
+				// clean up Dvar_GetBool
+				ctx.Rsp += 0x48 + sizeof(uint64_t); 
+				ctx.Rax = static_cast<DWORD64>(-1);
+				ctx.Rip = retaddr + 0x38;
 			}
 		});
 	}

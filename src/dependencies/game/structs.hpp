@@ -92,6 +92,8 @@ namespace game
 		MESSAGE_ELEMENT_XUID = 9,
 		MESSAGE_ELEMENT_STRING = 11,
 		MESSAGE_ELEMENT_GLOB = 12,
+		MESSAGE_ELEMENT_DEBUG_START = 16,
+		MESSAGE_ELEMENT_DEBUG_END = 17,
 	};
 	
 	enum PackageType
@@ -186,107 +188,93 @@ namespace game
 		int maxsize;
 		int cursize;
 		int readcount;
-		char pad[0x18];
 		int bit;
-		char pad2[0x5];
+		char pad[0x21 - 4];
 		bool overflowed;
 		bool readOnly;
-		char pad3[0x8];
+		char pad2[0x8];
 		MsgType type;
 		PackageType packageType;
 		char encodeFlags;
 
-		template<size_t buf_size>
-		void init_lobby(char(&buf)[buf_size], const MsgType msg_type)
+		auto get_data() const
 		{
-			this->init(buf, buf_size);
+			return std::string{ reinterpret_cast<const char*>(this->data), static_cast<std::string::size_type>(this->cursize) };
+		}
+		
+		void init(void* buf, const size_t bufsize, const bool read_only = false)
+		{
+			*this = {};
+
+			this->data = static_cast<char*>(buf);
+			this->maxsize = static_cast<int>(bufsize);
+
+			if (read_only)
+			{
+				this->cursize = static_cast<int>(bufsize);
+				this->readOnly = true;
+			}
+		}
+
+		template<class T, const size_t bufsize>
+		void init(T(&buf)[bufsize])
+		{
+			this->init(buf, bufsize);
+		}
+
+		template<class T, const size_t bufsize>
+		bool init_lobby_write(T(&buf)[bufsize], const MsgType msg_type)
+		{
+			this->init(buf);
 
 			this->packageType = PACKAGE_TYPE_WRITE;
 			this->type = msg_type;
 			this->encodeFlags = 0;
 
-			this->write_bits(0, 2);
+			this->write(0, 2);
+
 			this->write<uint8_t>(MESSAGE_ELEMENT_UINT8);
 			this->write<uint8_t>(msg_type);
+
+			if (this->overflowed)
+			{
+				return false;
+			}
+
 			this->write<uint8_t>(MESSAGE_ELEMENT_STRING);
-			this->write_data("sike");
-		}
-		
-		void init(char* buffer, const size_t buf_size, const bool read = false)
-		{
-			*this = {};
-
-			data = buffer;
-			maxsize = buf_size;
-
-			if (readOnly = read)
-			{
-				cursize = buf_size;
-			}
-		}
-		
-		template<typename T> void write_lobby(T value, const uint8_t element_type)
-		{
-			if (packageType != PACKAGE_TYPE_WRITE)
-				return;
+			const auto msg_type_name = LobbyTypes_GetMsgTypeName(static_cast<MsgType>(-1)); 
+			this->write(msg_type_name);
 			
-			this->write<uint8_t>(element_type);
-			this->write<T>(value);
+			return true;
 		}
 
-		void write_data_lobby(const char* data, const size_t length)
-		{
-			if (packageType != PACKAGE_TYPE_WRITE)
-				return;
-
-			this->write<uint8_t>(MESSAGE_ELEMENT_GLOB);
-			this->write<uint16_t>(length);
-			this->write_data(data, length);
-		}
+		bool init_lobby_read();
 		
-		template<typename T> void write(T value)
+		template<typename T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+		void write(const T value)
 		{
-			const auto final_size = cursize + sizeof(value);
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto max_size = static_cast<size_t>(this->maxsize);
 
-			if (final_size > maxsize)
+			if (cur_size + sizeof(value) > max_size)
 			{
-				overflowed = 1;
+				this->overflowed = true;
 			}
 			else
 			{
-				*reinterpret_cast<T*>(&data[cursize]) = value;
-				cursize = final_size;
-			}
-		}
-		
-		void write_data(const std::string& buffer)
-		{
-			return write_data(buffer.data(), buffer.size() + 1);
-		}
-
-		void write_data(const char* buffer, const size_t length)
-		{
-			const auto final_size = cursize + length;
-
-			if (final_size > maxsize)
-			{
-				overflowed = 1;
-			}
-			else
-			{
-				std::memcpy(&data[cursize], buffer, length);
-				cursize = final_size;
+				*reinterpret_cast<T*>(&this->data[cur_size]) = value;
+				this->cursize += sizeof(value);
 			}
 		}
 
-		void write_bits(int value, int bits)
+		void write(int value, int bits)
 		{
-			if (static_cast<uint32_t>(bits) > 0x20)
-				return;
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto max_size = static_cast<size_t>(this->maxsize);
 
-			if (maxsize - cursize < 4)
+			if (max_size - cur_size < 4)
 			{
-				overflowed = 1;
+				this->overflowed = true;
 			}
 			else
 			{
@@ -294,53 +282,154 @@ namespace game
 				{
 					--bits;
 
-					const auto b = bit & 7;
+					const auto bit = this->bit & 7;
 
-					if (!b)
+					if (!bit)
 					{
-						bit = sizeof(uint64_t) * cursize;
-						data[++cursize] = 0;
+						this->bit = sizeof(uint64_t) * cur_size;
+						this->data[++this->cursize] = 0;
 					}
 
 					if ((value & 1) != 0)
-						data[bit >> 3] |= 1 << b;
+						this->data[this->bit >> 3] |= 1 << bit;
 
-					++bit;
+					++this->bit;
 					value >>= 1;
 				}
 			}
 		}
 
-		template<typename T> T read()
+		void write(const void* buf, const size_t bufsize)
 		{
-			const auto final_size = readcount + sizeof(T);
-			auto result = static_cast<T>(-1);
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto max_size = static_cast<size_t>(this->maxsize);
 
-			if (final_size > cursize)
+			if (cur_size + bufsize > max_size)
 			{
-				overflowed = 1;
+				this->overflowed = true;
 			}
 			else
 			{
-				result = *reinterpret_cast<T*>(&data[readcount]);
-				readcount = final_size;
+				std::memcpy(&this->data[cur_size], buf, bufsize);
+				this->cursize += bufsize;
+			}
+		}
+
+		void write(const std::string& buffer)
+		{
+			return write(buffer.data(), buffer.size() + 1);
+		}
+
+		template<typename T>
+		void write_lobby(const T value, const uint8_t element_type)
+		{
+			if (packageType != PACKAGE_TYPE_WRITE)
+				return;
+
+			this->write<uint8_t>(element_type);
+			this->write<T>(value);
+		}
+
+		template<typename T> 
+		T read()
+		{
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto read_count = static_cast<size_t>(this->readcount); 
+
+			T result = {};
+
+			if (read_count + sizeof(T) > cur_size)
+			{
+				this->overflowed = true;
+			}
+			else
+			{
+				result = *reinterpret_cast<T*>(&this->data[read_count]);
+				this->readcount += sizeof(T);
 			}
 
 			return result;
 		}
 
-		void read_data(void* buffer, const size_t max_size, const size_t length)
+		template<typename T>
+		T read(const T bits)
 		{
-			if (length > max_size || readcount + length > cursize)
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto read_count = static_cast<size_t>(this->readcount); 
+			
+			T result = {};
+
+			for (auto i = 0; i < bits; ++i)
 			{
-				overflowed = 1;
-				std::memset(data, 0xff, max_size);
+				const auto bit = this->bit & 7;
+				if (!bit)
+				{
+					if (read_count >= cur_size)
+					{
+						this->overflowed = true;
+						return -1;
+					}
+
+					this->bit = sizeof(uint64_t) * ++this->readcount;
+				}
+
+				result |= ((this->data[++this->bit >> 3] >> bit) & 1) << i;
+			}
+
+			return result;
+		}
+
+		void read(void* buf, const size_t bufsize, const size_t readlen)
+		{
+			const auto cur_size = static_cast<size_t>(this->cursize);
+			const auto read_count = static_cast<size_t>(this->readcount);
+			
+			if (readlen > bufsize || read_count + readlen > cur_size)
+			{
+				this->overflowed = true;
+				std::memset(buf, -1, bufsize);
 			}
 			else
 			{
-				std::memcpy(buffer, &data[readcount], length);
-				readcount += length;
+				std::memcpy(buf, &this->data[read_count], readlen);
+				this->readcount += readlen;
 			}
+		}
+
+		template<class T, const size_t bufsize>
+		void read(T(&buf)[bufsize], const size_t readlen)
+		{
+			this->read(buf, bufsize, readlen);
+		}
+
+		void read_string(char* str, const size_t strsize, const bool next = false)
+		{
+			for (auto l = 0; ; ++l)
+			{
+				auto c = read<uint8_t>(); 
+				
+				if (l < strsize)
+				{
+					if (next && c == '\n' || c == -1)
+						c = 0;
+					
+					if (c == '%')
+						c = '.'; 
+					
+					str[l] = c;
+				}
+				
+				if (!c)
+					break;
+			}
+			
+			str[strsize - 1] = 0;
+		}
+
+		template<class T, const size_t strsize>
+		void read_string(T(&str)[strsize], const bool next = false)
+		{
+			this->read_string(str, strsize, next);
 		}
 	};
 

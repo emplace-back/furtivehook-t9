@@ -57,7 +57,7 @@ namespace events::instant_message
 		char buffer[0x80] = { 0 };
 		game::msg_t msg{};
 
-		msg.init_lobby(buffer, game::MESSAGE_TYPE_INFO_REQUEST);
+		msg.init_lobby_write(buffer, game::MESSAGE_TYPE_INFO_REQUEST);
 		msg.write_lobby<uint32_t>(nonce, 1);
 
 		game::send_instant_message(recipients, 'h', msg);
@@ -82,7 +82,7 @@ namespace events::instant_message
 			const auto length{ msg.cursize - msg.readcount }; 
 		
 			char buffer[2048] = { 0 };
-			msg.read_data(buffer, sizeof buffer, length);
+			msg.read(buffer, length);
 
 			if (msg.overflowed)
 				return false;

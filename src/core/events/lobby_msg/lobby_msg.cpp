@@ -72,6 +72,9 @@ namespace events::lobby_msg
 	
 	bool handle(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
 	{
+		if (!msg.init_lobby_read())
+			return true;
+		
 		const auto ip_str{ utils::get_sender_string(from) };
 		const auto type_name{ game::LobbyTypes_GetMsgTypeName(msg.type) };
 

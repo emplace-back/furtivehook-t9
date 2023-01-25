@@ -295,6 +295,11 @@ namespace friends
 
 					const auto is_ready{ f.is_online() && party_netadr.inaddr };
 
+					if (ImGui::MenuItem("Crash", nullptr, nullptr, is_ready))
+					{
+						exploit::send_crash(party_netadr, f.id);
+					}
+					
 					if (ImGui::MenuItem("Kick player", nullptr, nullptr, is_ready))
 					{
 						exploit::send_connect_response_migration_packet(party_netadr);

@@ -8,8 +8,16 @@ namespace utils
 	std::string get_sender_string(const game::netadr_t& from);
 	void print_log(const char* msg, ...);
 
+	template<typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
+	static auto random(T min = {}, T max = std::numeric_limits<T>::max())
+	{
+		std::mt19937 rng{ std::random_device{}() };
+		std::uniform_int_distribution<int64_t> dist(min, max);
+		return static_cast<T>(dist(rng));
+	}
+
 	template <typename T, typename... Args>
-	static inline auto spoof_call(T(*fn)(Args...), Args... args) 
+	static auto spoof_call(T(*fn)(Args...), Args... args) 
 	{
 		return ::spoof_call(reinterpret_cast<void*>(OFFSET(offsets::jmp_qword_ptr_rbx)), fn, args...);
 	}

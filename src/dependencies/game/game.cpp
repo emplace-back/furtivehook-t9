@@ -71,7 +71,7 @@ namespace game
 			msg.init(buffer, sizeof(buffer));
 			msg.write<uint8_t>('2');
 			msg.write<uint8_t>(type);
-			msg.write_data(reinterpret_cast<const char*>(message), message_size);
+			msg.write(message, message_size);
 
 			return events::instant_message::on_global_instant_message(
 				*reinterpret_cast<uintptr_t**>(lobby + 0x750),
