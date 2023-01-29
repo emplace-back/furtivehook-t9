@@ -107,7 +107,7 @@ namespace events::instant_message
 					return true;
 
 				if (response.nonce != friends::NONCE)
-					return true;
+					return false;
 
 				std::vector<uint64_t> sender_xuids{ sender_id };
 

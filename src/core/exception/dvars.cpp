@@ -56,11 +56,14 @@ namespace exception::dvars
 
 			const static std::vector<std::pair<uintptr_t, uintptr_t>> unlock_handlers =
 			{
-				{ 0x6C0D8B481074C084, 0x7C }, // BG_UnlockablesIsItemLockedFromBuffer
-				{ 0x8A0D8B481074C084, 0xDD }, // BG_UnlockablesIsItemAttachmentLockedFromBuffer
+				{ 0xC0D8B481074C084, 0x7C }, // BG_UnlockablesIsItemLockedFromBuffer
+				{ 0xA0D8B481074C084, 0xDD }, // BG_UnlockablesIsItemAttachmentLockedFromBuffer
 			};
 
-			const auto unlock = std::find_if(unlock_handlers.begin(), unlock_handlers.end(), [=](const auto& handler) { return *reinterpret_cast<uint64_t*>(retaddr) == handler.first; });
+			const auto unlock = std::find_if(unlock_handlers.begin(), unlock_handlers.end(), [=](const auto& handler) 
+			{ 
+				return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFFFFFFF) == handler.first;
+			});
 
 			if (unlock != unlock_handlers.end())
 			{

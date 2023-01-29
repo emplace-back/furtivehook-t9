@@ -1,14 +1,14 @@
 #include "dependencies/stdafx.hpp"
 #include "structs.hpp"
 
-namespace game
+namespace game 
 {
 	bool msg_t::init_lobby_read()
 	{
 		this->packageType = game::PACKAGE_TYPE_READ;
-		this->encodeFlags = game::call<uint8_t>(0x7FF794B418B0, this, 2);
+		this->encodeFlags = read<uint8_t>();
 
-		if (this->read<uint8_t>() != 5)
+		if (this->read<uint8_t>() != MESSAGE_ELEMENT_UINT8)
 		{
 			this->overflowed = true;
 			return false;
@@ -21,7 +21,7 @@ namespace game
 			return false;
 		}
 
-		if (this->read<uint8_t>() != 11)
+		if (this->read<uint8_t>() != MESSAGE_ELEMENT_STRING)
 		{
 			this->overflowed = true;
 			return false;
@@ -30,21 +30,14 @@ namespace game
 		char msg_type_name[32] = { 0 };
 		this->read_string(msg_type_name);
 
-		const auto msg_backup = *this;
+		auto debug_message_overflow = ""s;
+		debug_message_overflow.resize(MESSAGE_TYPE_COUNT, MESSAGE_ELEMENT_DEBUG_START);
 
-		size_t i = 0;
-
-		while (!this->overflowed)
+		if (this->get_data().find(debug_message_overflow.data(), 0, debug_message_overflow.size()) != std::string::npos)
 		{
-			if (const auto element_type = read<uint8_t>(); element_type == MESSAGE_ELEMENT_DEBUG_START
-				&& ++i == MESSAGE_TYPE_COUNT)
-			{
-				PRINT_MESSAGE("LobbyMSG", "Potential stack overflow in '%s'", game::LobbyTypes_GetMsgTypeName(this->type));
-				return false;
-			}
+			PRINT_MESSAGE("LobbyMSG", "Potential stack overflow in '%s'", game::LobbyTypes_GetMsgTypeName(this->type));
+			return false;
 		}
-
-		*this = msg_backup;
 
 		return true;
 	}

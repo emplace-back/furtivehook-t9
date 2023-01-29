@@ -250,7 +250,7 @@ namespace game
 			this->type = msg_type;
 			this->encodeFlags = 0;
 
-			this->write(0, 2);
+			this->write<uint8_t>(0);
 
 			this->write<uint8_t>(MESSAGE_ELEMENT_UINT8);
 			this->write<uint8_t>(msg_type);
@@ -283,38 +283,6 @@ namespace game
 			{
 				*reinterpret_cast<T*>(&this->data[cur_size]) = value;
 				this->cursize += sizeof(value);
-			}
-		}
-
-		void write(int value, int bits)
-		{
-			const auto cur_size = static_cast<size_t>(this->cursize);
-			const auto max_size = static_cast<size_t>(this->maxsize);
-
-			if (max_size - cur_size < 4)
-			{
-				this->overflowed = true;
-			}
-			else
-			{
-				while (bits)
-				{
-					--bits;
-
-					const auto bit = this->bit & 7;
-
-					if (!bit)
-					{
-						this->bit = sizeof(uint64_t) * cur_size;
-						this->data[++this->cursize] = 0;
-					}
-
-					if ((value & 1) != 0)
-						this->data[this->bit >> 3] |= 1 << bit;
-
-					++this->bit;
-					value >>= 1;
-				}
 			}
 		}
 
@@ -370,34 +338,6 @@ namespace game
 			return result;
 		}
 
-		template<typename T>
-		T read(const T bits)
-		{
-			const auto cur_size = static_cast<size_t>(this->cursize);
-			const auto read_count = static_cast<size_t>(this->readcount); 
-			
-			T result = {};
-
-			for (auto i = 0; i < bits; ++i)
-			{
-				const auto bit = this->bit & 7;
-				if (!bit)
-				{
-					if (read_count >= cur_size)
-					{
-						this->overflowed = true;
-						return -1;
-					}
-
-					this->bit = sizeof(uint64_t) * ++this->readcount;
-				}
-
-				result |= ((this->data[++this->bit >> 3] >> bit) & 1) << i;
-			}
-
-			return result;
-		}
-
 		void read(void* buf, const size_t bufsize, const size_t readlen)
 		{
 			const auto cur_size = static_cast<size_t>(this->cursize);
@@ -421,7 +361,7 @@ namespace game
 			this->read(buf, bufsize, readlen);
 		}
 
-		void read_string(char* str, const size_t strsize, const bool next = false)
+		const char* read_string(char* str, const size_t strsize, const bool next = false)
 		{
 			for (auto l = 0; ; ++l)
 			{
@@ -443,12 +383,13 @@ namespace game
 			}
 			
 			str[strsize - 1] = 0;
+			return str;
 		}
 
 		template<class T, const size_t strsize>
-		void read_string(T(&str)[strsize], const bool next = false)
+		const char* read_string(T(&str)[strsize], const bool next = false)
 		{
-			this->read_string(str, strsize, next);
+			return this->read_string(str, strsize, next);
 		}
 	};
 

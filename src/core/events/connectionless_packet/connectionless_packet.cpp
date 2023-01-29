@@ -49,9 +49,7 @@ namespace events::connectionless_packet
 		if(header) msg->read<int>();
 		
 		char buffer[1024] = { 0 };
-		msg->read_string(buffer, true);
-
-		return handle_command(buffer, from, msg);
+		return handle_command(msg->read_string(buffer, true), from, msg);
 	}
 
 	void initialize()

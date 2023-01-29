@@ -23,7 +23,7 @@ namespace events
 			if (reinterpret_cast<uint8_t*>(retaddr) == lobby_msg_rw_package_int + 0x7C)
 			{
 				const auto* key = reinterpret_cast<const char*>(*(rsp + 22 - 1));
-
+				
 				if (lobby_msg::handle<uint32_t>(value, key))
 				{
 					PRINT_LOG("Crash attempt caught <%s> with key '%s' of value [%i]", game::LobbyTypes_GetMsgTypeName(msg->type), key, value);
@@ -37,7 +37,10 @@ namespace events
 				{ 0xCE8B0C578B, *(rsp + 16 - 6) },
 			};
 
-			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [=](const auto& handler) { return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; });
+			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [=](const auto& handler) 
+			{ 
+				return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; 
+			});
 
 			if (oob != oob_handlers.end())
 			{
