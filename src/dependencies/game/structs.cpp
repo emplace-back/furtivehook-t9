@@ -3,6 +3,11 @@
 
 namespace game 
 {
+	netadr_t InfoResponseLobby::get_netadr() const
+	{
+		return game::net::oob::register_remote_addr(*this);
+	}
+	
 	bool msg_t::init_lobby_read()
 	{
 		this->packageType = game::PACKAGE_TYPE_READ;
@@ -40,5 +45,10 @@ namespace game
 		}
 
 		return true;
+	}
+
+	size_t msg_t::read_bits_compress(const void* from, size_t fromsize, void* to, size_t tosize) const
+	{
+		return game::call<size_t>(0x7FF64A6C2190, from, fromsize, to, tosize);
 	}
 }

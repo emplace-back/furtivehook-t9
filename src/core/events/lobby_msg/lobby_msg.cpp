@@ -70,24 +70,45 @@ namespace events::lobby_msg
 		return send_lobby_msg(channel, module, msg, netadr, xuid);
 	}
 	
-	bool handle(const game::LobbyModule module, const game::netadr_t& from, game::msg_t& msg)
+	bool handle(const game::netadr_t& from, game::msg_t* msg, game::NetChanMsgType channel)
 	{
-		if (!msg.init_lobby_read())
+		const auto msg_backup = *msg;
+		const auto _ = utils::finally([=]() { *msg = msg_backup; });
+
+		if (channel == game::NETCHAN_LOBBYGAME_STATE)
+		{
+			char buffer[0x20000] = { 0 };
+			const auto length = msg->read_bits_compress(msg->data, msg->cursize - msg->readcount, buffer);
+			msg->init(buffer, length, true);
+		}
+
+		if (msg->overflowed || msg->cursize - msg->readcount < 4)
+			return false;
+		
+		if (msg->read<uint16_t>() != 0x97A)
+			return false;
+
+		const auto module = static_cast<game::LobbyModule>(msg->read<uint8_t>());
+		msg->read<uint8_t>();
+		
+		if (!msg->init_lobby_read())
 			return true;
 		
-		const auto ip_str{ utils::get_sender_string(from) };
-		const auto type_name{ game::LobbyTypes_GetMsgTypeName(msg.type) };
+		const auto ip_str = utils::get_sender_string(from);
+		const auto type_name = game::LobbyTypes_GetMsgTypeName(msg->type);
 
 		if (log_messages)
+		{
 			PRINT_LOG("Received lobby message [%i] <%s> from %s", module, type_name, ip_str.data());
+		}
 
 		const auto& callbacks = get_callbacks();
-		const auto handler = callbacks.find({ module, msg.type });
+		const auto handler = callbacks.find({ module, msg->type });
 
 		if (handler == callbacks.end())
 			return false;
 
-		return handler->second(from, msg, module);
+		return handler->second(from, *msg, module);
 	}
 	
 	void initialize()

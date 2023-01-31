@@ -7,7 +7,7 @@ namespace events::connectionless_packet
 
 	namespace
 	{
-		using callback = std::function<bool(const command::args&, const game::netadr_t&, game::msg_t&)>;
+		using callback = std::function<bool(const command::args&, const game::netadr_t&, game::msg_t& msg)>;
 		std::unordered_map<std::string, callback>& get_callbacks()
 		{
 			static std::unordered_map<std::string, callback> callbacks{};
@@ -18,43 +18,49 @@ namespace events::connectionless_packet
 		{
 			get_callbacks()[utils::string::to_lower(command)] = callback;
 		}
-
-		bool handle_command(const char* buffer, const game::netadr_t& from, game::msg_t* msg)
-		{
-			auto args = command::args::get_client();
-			args.tokenize(buffer);
-			const auto _ = utils::finally([&args]()
-			{
-				args.end_tokenize();
-			});
-
-			if (log_commands)
-			{
-				PRINT_LOG("Received OOB '%s' from %s", args.join(0).data(), utils::get_sender_string(from).data());
-			}
-
-			const auto oob_string = utils::string::to_lower(args[0]);
-			const auto& callbacks = get_callbacks();
-			const auto handler = callbacks.find(oob_string);
-
-			if (handler == callbacks.end())
-				return false;
-
-			return handler->second(args, from, *msg);
-		}
 	}
 
-	bool handle_command(const game::netadr_t& from, game::msg_t* msg, const bool header)
+	bool handle_command(const game::netadr_t& from, game::msg_t* msg, bool server_oob)
 	{
-		if(header) msg->read<int>();
-		
+		const auto args = command::args{};
+
+		const auto msg_backup = *msg;
+
 		char buffer[1024] = { 0 };
-		return handle_command(msg->read_string(buffer, true), from, msg);
+		args.tokenize(msg->read_string(buffer, true));
+		const auto _ = utils::finally([=]()
+		{
+			*msg = msg_backup;
+			args.end_tokenize();
+		});
+
+		const auto oob_string = args.join();
+		const auto ip_str = utils::get_sender_string(from);
+
+		if (log_commands)
+		{
+			PRINT_LOG("Received OOB [%c] '%s' from %s", server_oob ? 's' : 'c', oob_string.data(), ip_str.data());
+		}
+
+		if (const auto write_length = static_cast<uint32_t>(msg->cursize) + 48; 
+			sizeof(game::PacketQueueBlock::data) < write_length)
+		{
+			PRINT_LOG("Ignoring OOB of size [%u] from %s", msg->cursize, ip_str.data());
+			return true;
+		}
+
+		const auto& callbacks = get_callbacks();
+		const auto handler = callbacks.find(utils::string::to_lower(args[0]));
+
+		if (handler == callbacks.end())
+			return false;
+
+		return handler->second(args, from, *msg);
 	}
 
 	void initialize()
 	{
-		const auto ignore_oob = [](const command::args& args, const game::netadr_t& from, auto&)
+		const auto ignore_oob = [](const auto& args, const auto& from, auto&)
 		{
 			PRINT_LOG("Ignoring OOB '%s' from %s", args.join(0).data(), utils::get_sender_string(from).data());
 			return true;
@@ -64,5 +70,9 @@ namespace events::connectionless_packet
 		connectionless_packet::on_command("connectResponseMigration", ignore_oob);
 		connectionless_packet::on_command("print", ignore_oob);
 		connectionless_packet::on_command("echo", ignore_oob);
+		connectionless_packet::on_command("LM", [](const auto&, const auto& from, auto& msg)
+		{
+			return lobby_msg::handle(from, &msg, game::NETCHAN_INVALID_CHANNEL);
+		});
 	}
 }

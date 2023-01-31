@@ -54,6 +54,12 @@ namespace game
 		return reinterpret_cast<uintptr_t>(base);
 	}
 
+
+	TLSData* Sys_GetTLS()
+	{
+		return *reinterpret_cast<TLSData**>(*reinterpret_cast<uintptr_t*>(NtCurrentTeb()->Reserved1[11]) + 0x10708);
+	}
+	
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size)
 	{
 		const auto lobby = game::dwGetLobby(0);

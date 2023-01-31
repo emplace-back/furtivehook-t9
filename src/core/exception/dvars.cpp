@@ -45,11 +45,12 @@ namespace exception::dvars
 	{
 		const auto lobbymsg_prints_ptr = utils::hook::scan_pattern(signatures::lobbymsg_prints_ptr);
 		const auto unlockables_ptr = utils::hook::scan_pattern(signatures::unlockables_ptr);
+		const auto netchan_debugspew_ptr = utils::hook::scan_pattern(signatures::netchan_debugspew_ptr);
 
-		if (!lobbymsg_prints_ptr || !unlockables_ptr)
+		if (!lobbymsg_prints_ptr || !unlockables_ptr || !netchan_debugspew_ptr)
 			return;
 
-		dvars::register_hook(hook_dvar::unlockables, utils::hook::extract<uintptr_t>(unlockables_ptr + 3),
+		/*dvars::register_hook(hook_dvar::unlockables, utils::hook::extract<uintptr_t>(unlockables_ptr + 3),
 			[](auto& ctx)
 		{
 			const auto retaddr = *reinterpret_cast<uintptr_t*>(ctx.Rsp + sizeof(uint64_t) + 0x40);
@@ -71,7 +72,47 @@ namespace exception::dvars
 				ctx.Rsp += 0x48 + sizeof(uint64_t);
 				ctx.Rip = retaddr + unlock->second;
 			}
-		}); 
+		});*/ 
+		
+		dvars::register_hook(hook_dvar::netchan_debugspew, utils::hook::extract<uintptr_t>(netchan_debugspew_ptr + 3),
+			[](auto& ctx)
+		{
+			const auto stack = ctx.Rsp + sizeof(uint64_t) + 0x40;
+			const auto retaddr = *reinterpret_cast<uintptr_t*>(stack);
+
+			// Netchan_GetMessage
+			if (*reinterpret_cast<uint64_t*>(retaddr) == 0xBE0D8B480C75C084)
+			{
+				const auto channel = static_cast<game::NetChanMsgType>(ctx.R15 / sizeof(uint64_t));
+				const auto chan = reinterpret_cast<game::NetChanMessage_s*>(ctx.Rbx);
+				const auto msg = reinterpret_cast<game::msg_t*>(ctx.Rsi);
+				
+				auto msg_backup = *msg;
+				auto handled = false;
+
+				if (channel == game::NETCHAN_SNAPSHOT || channel == game::NETCHAN_CLIENTMSG)
+				{
+					if (*reinterpret_cast<int*>(msg->data) == -1)
+					{
+						msg->read<int>();
+						handled = events::connectionless_packet::handle_command(chan->destAddress, msg, channel);
+					}
+				}
+				else if (channel == game::NETCHAN_CLIENT_CMD || channel == game::NETCHAN_CONNECTIONLESS_CMD)
+				{
+					handled = events::connectionless_packet::handle_command(chan->destAddress, msg, !(channel & 1));
+				}
+				else
+				{
+					handled = events::lobby_msg::handle(chan->destAddress, msg, channel);
+				}
+
+				if (handled)
+					msg->cursize = 0;
+				else
+					*msg = msg_backup;
+			}
+		});
 		
 		dvars::register_hook(hook_dvar::handle_packet, utils::hook::extract<uintptr_t>(lobbymsg_prints_ptr + 3),
 			[](auto& ctx)
@@ -79,31 +120,8 @@ namespace exception::dvars
 			const auto stack = ctx.Rsp + sizeof(uint64_t) + 0x40;
 			const auto retaddr = *reinterpret_cast<uintptr_t*>(stack);
 
-			const auto instr = *reinterpret_cast<uint64_t*>(retaddr);
-
-			// HandlePacketInternal
-			if(instr == 0x40244C8D48D78B48)
-			{
-				const auto msg = reinterpret_cast<game::msg_t*>(ctx.Rdi);
-				const auto msg_backup = *msg;
-
-				if (events::lobby_msg::handle(
-					*reinterpret_cast<game::LobbyModule*>(stack + sizeof(uint64_t) + 0xE0),
-					*reinterpret_cast<game::netadr_t*>(ctx.Rsi),
-					*msg))
-				{
-					// clean up Dvar_GetBool
-					ctx.Rsp += 0x48 + sizeof(uint64_t);
-					ctx.Rip = retaddr + 0x11C;
-				}
-				else
-				{
-					*msg = msg_backup;
-				}
-			}
-			
 			// LobbyMsgRW_PrintDebugMessage
-			else if (instr == 0x357B801F7411FF83)
+			if (*reinterpret_cast<uint64_t*>(retaddr) == 0x357B801F7411FF83)
 			{
 				// clean up Dvar_GetBool
 				ctx.Rsp += 0x48 + sizeof(uint64_t); 

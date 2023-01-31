@@ -285,7 +285,7 @@ namespace menu
 							
 							if (ImGui::MenuItem("Disconnect client from lobby"))
 							{
-								exploit::lobby_msg::send_disconnect_client(session, player_xuid);
+								exploit::lobby_msg::send_disconnect_client(player_xuid);
 							}
 
 							if (ImGui::BeginMenu("Send OOB##" + std::to_string(client_num), is_netadr_valid))
@@ -294,9 +294,10 @@ namespace menu
 
 								ImGui::InputTextWithHint("##" + std::to_string(client_num), "OOB", &string_input);
 
-								if (ImGui::MenuItem("Send OOB"))
+								if (ImGui::MenuItem("Send OOB", nullptr, nullptr, !string_input.empty()))
 								{
-									game::net::oob::send(netadr, string_input);
+									//game::net::oob::send(netadr, string_input);
+									game::net::netchan::send(game::NETCHAN_CONNECTIONLESS_CMD, "connectResponseMigration\n", netadr, player_xuid);
 								}
 
 								ImGui::EndMenu();

@@ -16,8 +16,7 @@ namespace offsets
 	constexpr auto dwGetLobby = 0x7FF64F4DFCB0;
 	constexpr auto dwNetadrToCommonAddr = 0x7FF64F625040;
 	constexpr auto dwInstantSendMessage = 0x7FF64F4AFC90;
-	constexpr auto Sys_GetTLS = 0x7FF650866780;
-	constexpr auto ret_com_switch_mode = 0x7FF794371D62;
+	constexpr auto ret_com_switch_mode = 0x7FF649EE71BA;
 
 	constexpr auto s_lobbyMsgName = 0x7FF6529A9380;
 	constexpr auto s_clientSession = 0x7FF657BEDCD0;

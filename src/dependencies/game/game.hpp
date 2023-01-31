@@ -26,6 +26,7 @@ namespace game
 
 	void initialize();
 	uintptr_t get_base();
+	TLSData* Sys_GetTLS();
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size);
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const std::string& data);
 	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const msg_t& msg);
@@ -73,5 +74,4 @@ namespace game
 	FUNC(Live_IsUserSignedInToDemonware, bool(int));
 	FUNC(dwGetLobby, uintptr_t(int));
 	FUNC(dwNetadrToCommonAddr, bool(netadr_t, void*, const uint32_t, void*));
-	FUNC(Sys_GetTLS, TLSData*());
 }

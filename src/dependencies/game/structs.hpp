@@ -252,8 +252,7 @@ namespace game
 
 			this->write<uint8_t>(0);
 
-			this->write<uint8_t>(MESSAGE_ELEMENT_UINT8);
-			this->write<uint8_t>(msg_type);
+			this->write_lobby<uint8_t>(msg_type, MESSAGE_ELEMENT_UINT8);
 
 			if (this->overflowed)
 			{
@@ -361,21 +360,21 @@ namespace game
 			this->read(buf, bufsize, readlen);
 		}
 
-		const char* read_string(char* str, const size_t strsize, const bool next = false)
+		const char* read_string(char* str, const size_t strsize, const bool line = false)
 		{
-			for (auto l = 0; ; ++l)
+			for (size_t i = 0;; ++i)
 			{
 				auto c = read<uint8_t>(); 
 				
-				if (l < strsize)
+				if (line && c == '\n' || c == '\xff')
+					c = '\0'; 
+				
+				if (i < strsize)
 				{
-					if (next && c == '\n' || c == -1)
-						c = 0;
-					
 					if (c == '%')
 						c = '.'; 
 					
-					str[l] = c;
+					str[i] = c;
 				}
 				
 				if (!c)
@@ -390,6 +389,14 @@ namespace game
 		const char* read_string(T(&str)[strsize], const bool next = false)
 		{
 			return this->read_string(str, strsize, next);
+		}
+
+		size_t read_bits_compress(const void* from, size_t fromsize, void* to, size_t tosize) const;
+
+		template<class T, const size_t tosize>
+		size_t read_bits_compress(const void* from, size_t fromsize, T(&to)[tosize])
+		{
+			return this->read_bits_compress(from, fromsize, to, tosize);
 		}
 	};
 
@@ -479,6 +486,8 @@ namespace game
 			info.hostAddress = serializedAdr.xnaddr;
 			return info;
 		}
+
+		netadr_t get_netadr() const;
 	};
 
 	struct Msg_InfoResponse
@@ -602,5 +611,38 @@ namespace game
 		char data[0x1F400];
 		int maxsize;
 		int cmdsize;
+	};
+
+	struct NetChanFragment_s
+	{
+		NetChanFragment_s* next;
+		int size;
+		uint16_t sendCount;
+		uint8_t sequence;
+		char msgBuf[1258];
+	}; 
+	
+	struct NetChanMessage_s
+	{
+		void* config;
+		NetChanMessage_s* next;
+		NetChanFragment_s* fragments;
+		uint64_t destXUID;
+		uint64_t sourceXUID;
+		char pad[0x30];
+		netadr_t destAddress;
+		uint16_t nonce;
+		char pad2[0xE];
+		uint8_t numFragments;
+		bool complete;
+		bool dropped;
+	};
+
+	struct PacketQueueBlock
+	{
+		PacketQueueBlock* next;
+		int readOffset;
+		int writeOffset;
+		char data[16384];
 	};
 }

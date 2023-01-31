@@ -14,7 +14,7 @@ namespace command
 		}
 	}
 
-	void args::tokenize(const char* text)
+	void args::tokenize(const char* text) const
 	{
 		if (auto& nesting{ ++cmd_args->nesting }; nesting < 8)
 		{
@@ -29,7 +29,7 @@ namespace command
 		}
 	}
 
-	void args::end_tokenize()
+	void args::end_tokenize() const
 	{
 		if (auto& nesting{ cmd_args->nesting }; nesting >= 0 && nesting < 8)
 		{

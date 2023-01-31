@@ -6,49 +6,49 @@ namespace events
 	utils::hook::detour time_get_time_hook;
 	bool prevent_join = true;
 
-	int __fastcall big_long(int value, uintptr_t* rsp, game::msg_t* msg)
+	uint32_t little_long(uint32_t value, uintptr_t* rsp)
 	{
-		static uint8_t* lobby_msg_rw_package_int{}, *msg_read_long;
+		const auto retaddr = *(rsp + 16 + 6); 
 
-		if (!lobby_msg_rw_package_int)
-			lobby_msg_rw_package_int = utils::hook::scan_pattern(signatures::ret_lobby_msg_rw_package_int);
+		if (!utils::nt::library::get_by_address(retaddr))
+			return value;
 
-		if (!msg_read_long)
-			msg_read_long = utils::hook::scan_pattern(signatures::msg_read_long);
+		const auto msg = *reinterpret_cast<game::msg_t**>(rsp + 8 + 4);
 
-		if (reinterpret_cast<uint8_t*>(*(rsp + 16)) == msg_read_long + 0x4F)
+		// LobbyMsgRW_PackageInt/LobbyMsgRW_PackageUInt
+		if (*reinterpret_cast<uint64_t*>(retaddr) == 0x8B4800357B800689)
 		{
-			const auto retaddr = *(rsp + 22);
+			const auto* key = reinterpret_cast<const char*>(*(rsp + 16 + 5));
 
-			if (reinterpret_cast<uint8_t*>(retaddr) == lobby_msg_rw_package_int + 0x7C)
+			if (lobby_msg::handle<uint32_t>(value, key))
 			{
-				const auto* key = reinterpret_cast<const char*>(*(rsp + 22 - 1));
-				
-				if (lobby_msg::handle<uint32_t>(value, key))
-				{
-					PRINT_LOG("Crash attempt caught <%s> with key '%s' of value [%i]", game::LobbyTypes_GetMsgTypeName(msg->type), key, value);
-					msg->overflowed = 1;
-				}
+				PRINT_LOG("Crash attempt caught <%s> with key '%s' of value [%i]", game::LobbyTypes_GetMsgTypeName(msg->type), key, value);
+				msg->overflowed = 1;
 			}
-
-			const std::vector<std::pair<uintptr_t, uintptr_t>> oob_handlers =
+		}
+		else
+		{
+			const std::vector<std::pair<uintptr_t, bool>> oob_handlers =
 			{
-				{ 0xCE8B0C558B, *(rsp + 16 + 6 + 2) },
-				{ 0xCE8B0C578B, *(rsp + 16 - 6) },
+				{ 0x6A8AE8CE8B0C558B, false }, // Netchan_DispatchOOBPackets -> CL_ConnectionlessPacket
+				{ 0x418FF18E80C4F8B, true },  //  Netchan_DispatchOOBPackets -> SV_ConnectionlessPacket
 			};
 
-			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [=](const auto& handler) 
-			{ 
-				return (*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == handler.first; 
-			});
+			const auto oob = std::find_if(oob_handlers.begin(), oob_handlers.end(), [=](const auto& handler) { return *reinterpret_cast<uint64_t*>(retaddr) == handler.first; });
 
 			if (oob != oob_handlers.end())
 			{
-				if (events::connectionless_packet::handle_command(
-					*reinterpret_cast<game::netadr_t*>(oob->second), 
-					msg))
+				const auto netadr = *reinterpret_cast<game::netadr_t*>(*(rsp + 16 + 8));
+
+				msg->readcount += sizeof(int);
+
+				if (events::connectionless_packet::handle_command(netadr, msg, oob->second))
 				{
-					*msg = {};
+					msg->cursize = 0;
+				}
+				else
+				{
+					msg->readcount -= sizeof(int);
 				}
 			}
 		}
@@ -56,48 +56,28 @@ namespace events
 		return value;
 	}
 
-	DWORD __stdcall time_get_time(uintptr_t* rsp)
+	DWORD time_get_time(uintptr_t* rsp)
 	{
-		static uint8_t* ret_com_client_packet_event{};
-
-		if (!ret_com_client_packet_event)
+		const auto result = time_get_time_hook.call<DWORD>();
+		const auto retaddr = *(rsp + 16 + 6); 
+		
+		if (!utils::nt::library::get_by_address(retaddr))
+			return result;
+		
+		// Com_Frame_Try_Block_Function
+		if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == 0x828D0FC73B)
 		{
-			ret_com_client_packet_event = utils::hook::scan_pattern(signatures::ret_com_client_packet_event);
+			scheduler::execute(scheduler::pipeline::main);
 		}
 
-		// Sys_Milliseconds
-		if ((*reinterpret_cast<uint64_t*>(*(rsp + 16) + 6) & 0xFFFFFFFFFF) == 0xC328C48348)
-		{
-			const auto retaddr = *(rsp + 22);
-
-			// Com_Frame_Try_Block_Function
-			if ((*reinterpret_cast<uint64_t*>(retaddr) & 0xFFFFFFFFFF) == 0x828D0FC73B)
-			{
-				scheduler::execute(scheduler::pipeline::main);
-			}
-			else if (reinterpret_cast<uint8_t*>(retaddr) == ret_com_client_packet_event)
-			{
-				const auto msg = reinterpret_cast<game::msg_t*>(rsp + 16 + 6 + 11);
-				const auto msg_backup = *msg;
-
-				if (!events::connectionless_packet::handle_command(
-					*reinterpret_cast<game::netadr_t*>(rsp + 16 + 6 + 9),
-					msg,
-					false))
-				{
-					*msg = msg_backup;
-				}
-			}
-		}
-
-		return time_get_time_hook.call<DWORD>();
+		return result;
 	}
 
-	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp)
+	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp_)
 	{
-		if (*(rsp + 16 + 6) == OFFSET(offsets::ret_com_switch_mode))
+		if (*(rsp_ + 16 + 6) == OFFSET(offsets::ret_com_switch_mode))
 		{
-			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp + 16 + 6 + 1));
+			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp_ + 16 + 6 + 1));
 		}
 
 		return LeaveCriticalSection(section);
@@ -129,32 +109,31 @@ namespace events
 		
 		scheduler::once([]()
 		{
-			const auto biglong_ptr = utils::hook::scan_pattern(signatures::biglong_ptr);
+			const auto littlelong_ptr = utils::hook::scan_pattern(signatures::littlelong_ptr);
 
-			if (!biglong_ptr)
+			if (!littlelong_ptr)
 				return;
 
-			const auto big_long_stub = utils::hook::assemble([](utils::hook::assembler& a)
+			const auto little_long_stub = utils::hook::assemble([](utils::hook::assembler& a)
 			{
 				a.pushad64();
-				a.lea(r8, qword_ptr(rbx));
 				a.lea(rdx, qword_ptr(rsp));
-				a.call_aligned(big_long);
+				a.call_aligned(little_long);
 				a.popad64(true);
 				a.ret();
 			}); 
 			
 			scheduler::loop([=]()
 			{
-				const auto biglong = utils::hook::extract<uintptr_t**>(utils::hook::extract<uint8_t*>(biglong_ptr + 1) + 3);
+				const auto littlelong = utils::hook::extract<uintptr_t**>(utils::hook::extract<uint8_t*>(littlelong_ptr + 1) + 3);
 
-				if (!biglong)
+				if (!littlelong)
 					return;
 
-				if (*biglong == big_long_stub)
+				if (*littlelong == little_long_stub)
 					return;
 				
-				utils::hook::set(biglong, big_long_stub);
+				utils::hook::set(littlelong, little_long_stub);
 			});
 		}, scheduler::pipeline::main);
 	}

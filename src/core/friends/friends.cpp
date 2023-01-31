@@ -257,7 +257,7 @@ namespace friends
 					const auto response = f.response;
 					const auto party_session = response.lobby[0];
 					const auto lobby_session = response.lobby[1];
-					game::netadr_t party_netadr{};
+					game::netadr_t party_netadr{}, lobby_netadr{};
 					
 					if (party_session.isValid)
 					{
@@ -271,7 +271,7 @@ namespace friends
 							ImGui::LogToClipboardUnformatted(message);
 						}
 
-						party_netadr = game::net::oob::register_remote_addr(party_session);
+						party_netadr = party_session.get_netadr();
 					}
 
 					if (lobby_session.isValid && lobby_session.hostXuid != f.id)
@@ -282,6 +282,8 @@ namespace friends
 						{
 							ImGui::LogToClipboardUnformatted(message);
 						}
+
+						lobby_netadr = lobby_session.get_netadr();
 					}
 					
 					ImGui::Separator();

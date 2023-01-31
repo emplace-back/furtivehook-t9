@@ -8,22 +8,10 @@ namespace command
 	class args final
 	{
 	public:
-		args(game::CmdArgs* a) : cmd_args(a)
-		{
-		}
+		args() : cmd_args(game::Sys_GetTLS()->cmdArgs) {}
 
-		static args get_client()
-		{
-			return args{ game::Sys_GetTLS()->cmdArgs };
-		}
-
-		static args get_server()
-		{
-			return args{ nullptr };
-		}
-
-		void tokenize(const char* string);
-		void end_tokenize();
+		void tokenize(const char* string) const;
+		void end_tokenize() const;
 		const char* get(const int index) const;
 		int size() const;
 		std::string join(const int index = 0) const;
