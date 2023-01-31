@@ -73,11 +73,30 @@ namespace events
 		return result;
 	}
 
-	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp_)
+	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp, uintptr_t r15)
 	{
-		if (*(rsp_ + 16 + 6) == OFFSET(offsets::ret_com_switch_mode))
+		const auto retaddr = *(rsp + 16 + 6); 
+		
+		if (retaddr == OFFSET(offsets::ret_com_switch_mode))
 		{
-			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp_ + 16 + 6 + 1));
+			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp + 16 + 7));
+		}
+		else if (*reinterpret_cast<uint64_t*>(retaddr) == 0x245C8B48C5B60F40)
+		{
+			const auto msg = reinterpret_cast<game::msg_t*>(*(rsp + 8 + 1));
+			const auto message = reinterpret_cast<game::NetChanMessage_s*>(*(rsp + 16 + 7));
+			const auto type = static_cast<game::NetChanMsgType>(r15 / sizeof(uint64_t));
+			
+			const auto msg_backup = *msg;
+
+			if (game::net::netchan::get(message, msg, type))
+			{
+				msg->cursize = 0;
+			}
+			else
+			{
+				*msg = msg_backup;
+			}
 		}
 
 		return LeaveCriticalSection(section);
@@ -100,6 +119,7 @@ namespace events
 
 		utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
 		{
+			a.mov(r8, r15);
 			a.pushad64();
 			a.lea(rdx, qword_ptr(rsp));
 			a.call_aligned(leave_critical_section);
@@ -107,7 +127,7 @@ namespace events
 			a.ret();
 		}));
 		
-		scheduler::once([]()
+		scheduler::on_game_initialized([]()
 		{
 			const auto littlelong_ptr = utils::hook::scan_pattern(signatures::littlelong_ptr);
 

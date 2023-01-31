@@ -9,17 +9,44 @@ namespace game
 	{
 		namespace netchan
 		{
+			bool get(const NetChanMessage_s* chan, msg_t* msg, NetChanMsgType type)
+			{
+				if (!chan || chan->complete)
+					return false;
+
+				auto handled = false;
+
+				if (type == NETCHAN_SNAPSHOT || type == NETCHAN_CLIENTMSG)
+				{
+					if (*reinterpret_cast<int*>(msg->data) == -1)
+					{
+						msg->read<int>();
+						handled = events::connectionless_packet::handle_command(chan->destAddress, msg, type);
+					}
+				}
+				else if (type == NETCHAN_CLIENT_CMD || type == NETCHAN_CONNECTIONLESS_CMD)
+				{
+					handled = events::connectionless_packet::handle_command(chan->destAddress, msg, !(type & 1));
+				}
+				else
+				{
+					handled = events::lobby_msg::handle(chan->destAddress, msg, type);
+				}
+
+				return handled;
+			}
+
 			bool send(const NetChanMsgType type, const std::string& data, const netadr_t& netadr, const uint64_t xuid)
 			{
-				return game::call<bool>(offsets::Netchan_SendMessage, 0, type, NETCHAN_UNRELIABLE, data.data(), data.size(), xuid, netadr, nullptr);
+				return call<bool>(offsets::Netchan_SendMessage, 0, type, NETCHAN_UNRELIABLE, data.data(), data.size(), xuid, netadr, nullptr);
 			}
 		}
 		
 		namespace oob
 		{
-			game::netadr_t register_remote_addr(const game::HostInfo& host_info)
+			netadr_t register_remote_addr(const HostInfo& host_info)
 			{
-				if (!game::call<bool>(offsets::LobbyJoin_ConnectToHost, &host_info))
+				if (!call<bool>(offsets::LobbyJoin_ConnectToHost, &host_info))
 				{
 					DEBUG_LOG("Failed to retrieve remote IP address from XNADDR (%s)", host_info.serializedAdr.xnaddr.to_string().data());
 					return {};
@@ -28,14 +55,14 @@ namespace game
 				return host_info.netadr;
 			}
 			
-			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby)
+			netadr_t register_remote_addr(const InfoResponseLobby& lobby)
 			{
-				return oob::register_remote_addr(game::HostInfo{}.from_lobby(lobby));
+				return oob::register_remote_addr(HostInfo{}.from_lobby(lobby));
 			}
 			
 			bool send(const netadr_t& netadr, const std::string& data)
 			{
-				return game::call<bool>(offsets::NET_OutOfBandData, game::NS_SERVER, netadr, data.data(), data.size());
+				return call<bool>(offsets::NET_OutOfBandData, NS_SERVER, netadr, data.data(), data.size());
 			}
 		}
 	}
@@ -60,9 +87,9 @@ namespace game
 		return *reinterpret_cast<TLSData**>(*reinterpret_cast<uintptr_t*>(NtCurrentTeb()->Reserved1[11]) + 0x10708);
 	}
 	
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size)
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const void* message, const uint32_t message_size)
 	{
-		const auto lobby = game::dwGetLobby(0);
+		const auto lobby = dwGetLobby(0);
 
 		if (!lobby)
 			return;
@@ -89,12 +116,12 @@ namespace game
 		return call(offsets::dwInstantSendMessage, 0, recipients.data(), recipients.size(), type, message, message_size);
 	}
 
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const std::string& data)
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const std::string& data)
 	{
 		return send_instant_message(recipients, type, data.data(), data.size());
 	}
 
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const msg_t& msg)
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const msg_t& msg)
 	{
 		return send_instant_message(recipients, type, msg.data, msg.cursize);
 	}

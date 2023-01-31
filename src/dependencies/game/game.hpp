@@ -13,13 +13,14 @@ namespace game
 	{
 		namespace netchan
 		{
+			bool get(const NetChanMessage_s * chan, msg_t* msg, NetChanMsgType type); 
 			bool send(const NetChanMsgType type, const std::string& data, const netadr_t& netadr, const uint64_t xuid);
 		}
 		
 		namespace oob
 		{
-			game::netadr_t register_remote_addr(const game::HostInfo& host_info);
-			game::netadr_t register_remote_addr(const game::InfoResponseLobby& lobby);
+			netadr_t register_remote_addr(const HostInfo& host_info);
+			netadr_t register_remote_addr(const InfoResponseLobby& lobby);
 			bool send(const netadr_t& target, const std::string& data);
 		}
 	}
@@ -27,9 +28,9 @@ namespace game
 	void initialize();
 	uintptr_t get_base();
 	TLSData* Sys_GetTLS();
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const void* message, const uint32_t message_size);
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const std::string& data);
-	void send_instant_message(const std::vector<std::uint64_t>& recipients, const std::uint8_t type, const msg_t& msg);
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const void* message, const uint32_t message_size);
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const std::string& data);
+	void send_instant_message(const std::vector<uint64_t>& recipients, const uint8_t type, const msg_t& msg);
 	const char* LobbyTypes_GetMsgTypeName(const MsgType type);
 	int find_target_from_addr(const LobbySession* session, const netadr_t& from);
 	void Cbuf_AddText(const char* text);

@@ -296,8 +296,7 @@ namespace menu
 
 								if (ImGui::MenuItem("Send OOB", nullptr, nullptr, !string_input.empty()))
 								{
-									//game::net::oob::send(netadr, string_input);
-									game::net::netchan::send(game::NETCHAN_CONNECTIONLESS_CMD, "connectResponseMigration\n", netadr, player_xuid);
+									game::net::oob::send(netadr, string_input);
 								}
 
 								ImGui::EndMenu();
