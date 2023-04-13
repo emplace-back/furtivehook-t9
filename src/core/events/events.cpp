@@ -3,6 +3,7 @@
 
 namespace events
 {
+	utils::hook::detour leave_critical_section_hook; 
 	utils::hook::detour time_get_time_hook;
 	bool prevent_join = true;
 
@@ -75,18 +76,17 @@ namespace events
 
 	void leave_critical_section(LPCRITICAL_SECTION section, uintptr_t* rsp, uintptr_t r15)
 	{
-		const auto retaddr = *(rsp + 16 + 6); 
-		
-		if (retaddr == OFFSET(offsets::ret_com_switch_mode))
-		{
-			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp + 16 + 7));
-		}
-		else if (*reinterpret_cast<uint64_t*>(retaddr) == 0x245C8B48C5B60F40)
+		const auto retaddr = *(rsp + 16 + 6);
+
+		if(utils::nt::library::get_by_address(retaddr) != utils::nt::library{})
+			return leave_critical_section_hook.call(section);
+
+		if (*reinterpret_cast<uint64_t*>(retaddr) == 0x245C8B48C5B60F40)
 		{
 			const auto msg = reinterpret_cast<game::msg_t*>(*(rsp + 8 + 1));
 			const auto message = reinterpret_cast<game::NetChanMessage_s*>(*(rsp + 16 + 7));
 			const auto type = static_cast<game::NetChanMsgType>(r15 / sizeof(uint64_t));
-			
+
 			const auto msg_backup = *msg;
 
 			if (game::net::netchan::get(message, msg, type))
@@ -98,8 +98,12 @@ namespace events
 				*msg = msg_backup;
 			}
 		}
+		else if (retaddr == OFFSET(offsets::ret_com_switch_mode))
+		{
+			game::cmd_text = reinterpret_cast<game::CmdText*>(*(rsp + 16 + 7));
+		}
 
-		return LeaveCriticalSection(section);
+		return leave_critical_section_hook.call(section);
 	}
 	
 	void initialize()
@@ -117,7 +121,7 @@ namespace events
 			a.ret();
 		}));
 
-		utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
+		leave_critical_section_hook.create(::LeaveCriticalSection, utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.mov(r8, r15);
 			a.pushad64();
@@ -127,7 +131,7 @@ namespace events
 			a.ret();
 		}));
 		
-		scheduler::on_game_initialized([]()
+		scheduler::once([]()
 		{
 			const auto littlelong_ptr = utils::hook::scan_pattern(signatures::littlelong_ptr);
 

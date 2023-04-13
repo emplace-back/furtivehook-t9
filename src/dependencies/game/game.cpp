@@ -14,6 +14,9 @@ namespace game
 				if (!chan || chan->complete)
 					return false;
 
+				if (static_cast<size_t>(msg->maxsize) < chan->messageLen)
+					return false;
+
 				auto handled = false;
 
 				if (type == NETCHAN_SNAPSHOT || type == NETCHAN_CLIENTMSG)

@@ -343,9 +343,11 @@ namespace menu
 				
 				if (ImGui::BeginTabItem("Misc"))
 				{
+					ImGui::Checkbox("Log out-of-band packets", &events::connectionless_packet::log_commands);
 					ImGui::Checkbox("Log instant messages", &events::instant_message::log_messages);
-					ImGui::Checkbox("Log lobby messages", &events::lobby_msg::log_messages); 
+					ImGui::Checkbox("Log lobby messages", &events::lobby_msg::log_messages);
 					ImGui::Checkbox("Prevent join", &events::prevent_join);
+					
 					ImGui::EndTabItem();
 				}
 
