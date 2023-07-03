@@ -78,9 +78,6 @@ namespace events
 	{
 		const auto retaddr = *(rsp + 16 + 6);
 
-		if(utils::nt::library::get_by_address(retaddr) != utils::nt::library{})
-			return leave_critical_section_hook.call(section);
-
 		if (*reinterpret_cast<uint64_t*>(retaddr) == 0x245C8B48C5B60F40)
 		{
 			const auto msg = reinterpret_cast<game::msg_t*>(*(rsp + 8 + 1));
@@ -121,7 +118,7 @@ namespace events
 			a.ret();
 		}));
 
-		leave_critical_section_hook.create(::LeaveCriticalSection, utils::hook::assemble([](utils::hook::assembler& a)
+		utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.mov(r8, r15);
 			a.pushad64();
