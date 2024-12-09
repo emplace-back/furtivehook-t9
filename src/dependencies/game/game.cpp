@@ -19,9 +19,6 @@ namespace game
 
 				auto handled = false;
 
-				PRINT_LOG("%i", type);
-				return handled;
-
 				if (type == NETCHAN_SNAPSHOT || type == NETCHAN_CLIENTMSG)
 				{
 					if (*reinterpret_cast<int*>(msg->data) == -1)
