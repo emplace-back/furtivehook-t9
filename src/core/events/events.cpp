@@ -107,7 +107,7 @@ namespace events
 	{
 		lobby_msg::initialize();
 		instant_message::initialize();
-		//connectionless_packet::initialize(); 
+		connectionless_packet::initialize(); 
 		
 		time_get_time_hook.create(::timeGetTime, utils::hook::assemble([](utils::hook::assembler& a)
 		{
@@ -118,7 +118,7 @@ namespace events
 			a.ret();
 		}));
 
-		/*utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
+		utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.mov(r8, r15);
 			a.pushad64();
@@ -126,9 +126,9 @@ namespace events
 			a.call_aligned(leave_critical_section);
 			a.popad64(true);
 			a.ret();
-		}));*/
+		}));
 		
-		/*scheduler::once([]()
+		scheduler::once([]()
 		{
 			const auto littlelong_ptr = utils::hook::scan_pattern(signatures::littlelong_ptr);
 
@@ -156,6 +156,6 @@ namespace events
 				
 				utils::hook::set(littlelong, little_long_stub);
 			});
-		}, scheduler::pipeline::main);*/
+		}, scheduler::pipeline::main);
 	}
 }

@@ -60,18 +60,8 @@ namespace events::connectionless_packet
 		return handler->second(args, from, *msg);
 	}
 
-	void __fastcall cl_dispatch_connectionless_packet(int localClientNum, game::netadr_t from, game::msg_t* msg)
-	{
-		if (connectionless_packet::handle_command(from, msg))
-			return;
-
-		return cl_dispatch_connectionless_packet_hook.call(localClientNum, from, msg);
-	}
-
 	void initialize()
 	{
-		cl_dispatch_connectionless_packet_hook.create(OFFSET(0x7FF7170D24B0), cl_dispatch_connectionless_packet);
-			
 		const auto ignore_oob = [](const auto& args, const auto& from, auto&)
 		{
 			PRINT_LOG("Ignoring OOB '%s' from %s", args.join(0).data(), utils::get_sender_string(from).data());
