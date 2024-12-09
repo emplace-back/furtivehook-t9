@@ -106,7 +106,7 @@ namespace scheduler
 	{
 		schedule([=]()
 		{
-			const auto dw_init = game::Live_IsUserSignedInToDemonware(0);
+			const auto dw_init = game::Live_IsDemonwareFetchingDone(0);
 
 			if (dw_init)
 			{

@@ -73,6 +73,7 @@ namespace game
 
 	FUNC(LiveUser_GetXuid, uint64_t(int));
 	FUNC(Live_IsUserSignedInToDemonware, bool(int));
+	FUNC(Live_IsDemonwareFetchingDone, bool(int));
 	FUNC(dwGetLobby, uintptr_t(int));
 	FUNC(dwNetadrToCommonAddr, bool(netadr_t, void*, const uint32_t, void*));
 }

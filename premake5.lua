@@ -65,7 +65,7 @@ workspace "furtivehook-t9"
 
         targetname "furtivehook-t9-debug"
 
-        postbuildcommands { "copy /Y \"%{wks.location}\\bin\\%{cfg.buildcfg}\\furtivehook-t9-debug.dll\" \"E:\\Games\\Battle.net\\Call of Duty Black Ops Cold War\\powrprof.dll\"" }
+        postbuildcommands { "copy /Y \"%{wks.location}\\bin\\%{cfg.buildcfg}\\furtivehook-t9-debug.dll\" \"E:\\Games\\Steam\\steamapps\\common\\Call of Duty Black Ops Cold War\\webio.dll\"" }
 
     configuration "release"
         defines {
@@ -78,7 +78,7 @@ workspace "furtivehook-t9"
 
         targetname "furtivehook-t9-release"
 
-        postbuildcommands { "copy /Y \"%{wks.location}\\bin\\%{cfg.buildcfg}\\furtivehook-t9-release.dll\" \"E:\\Games\\Battle.net\\Call of Duty Black Ops Cold War\\powrprof.dll\"" }
+        postbuildcommands { "copy /Y \"%{wks.location}\\bin\\%{cfg.buildcfg}\\furtivehook-t9-release.dll\" \"E:\\Games\\Steam\\steamapps\\common\\Call of Duty Black Ops Cold War\\webio.dll\"" }
 
 project "furtivehook-t9"
     kind "sharedlib"

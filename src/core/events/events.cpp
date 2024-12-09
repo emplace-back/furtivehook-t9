@@ -80,8 +80,8 @@ namespace events
 
 		if (*reinterpret_cast<uint64_t*>(retaddr) == 0x245C8B48C5B60F40)
 		{
-			const auto msg = reinterpret_cast<game::msg_t*>(*(rsp + 8 + 1));
-			const auto message = reinterpret_cast<game::NetChanMessage_s*>(*(rsp + 16 + 7));
+			const auto msg = *reinterpret_cast<game::msg_t**>(*(rsp + 8 + 1));
+			const auto message = *reinterpret_cast<game::NetChanMessage_s**>(*(rsp + 16 + 7));
 			const auto type = static_cast<game::NetChanMsgType>(r15 / sizeof(uint64_t));
 
 			const auto msg_backup = *msg;
@@ -107,7 +107,7 @@ namespace events
 	{
 		lobby_msg::initialize();
 		instant_message::initialize();
-		connectionless_packet::initialize(); 
+		//connectionless_packet::initialize(); 
 		
 		time_get_time_hook.create(::timeGetTime, utils::hook::assemble([](utils::hook::assembler& a)
 		{
@@ -118,7 +118,7 @@ namespace events
 			a.ret();
 		}));
 
-		utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
+		/*utils::hook::iat("kernel32.dll", "LeaveCriticalSection", utils::hook::assemble([](utils::hook::assembler& a)
 		{
 			a.mov(r8, r15);
 			a.pushad64();
@@ -126,9 +126,9 @@ namespace events
 			a.call_aligned(leave_critical_section);
 			a.popad64(true);
 			a.ret();
-		}));
+		}));*/
 		
-		scheduler::once([]()
+		/*scheduler::once([]()
 		{
 			const auto littlelong_ptr = utils::hook::scan_pattern(signatures::littlelong_ptr);
 
@@ -156,6 +156,6 @@ namespace events
 				
 				utils::hook::set(littlelong, little_long_stub);
 			});
-		}, scheduler::pipeline::main);
+		}, scheduler::pipeline::main);*/
 	}
 }

@@ -19,6 +19,9 @@ namespace game
 
 				auto handled = false;
 
+				PRINT_LOG("%i", type);
+				return handled;
+
 				if (type == NETCHAN_SNAPSHOT || type == NETCHAN_CLIENTMSG)
 				{
 					if (*reinterpret_cast<int*>(msg->data) == -1)
@@ -74,6 +77,7 @@ namespace game
 	{
 		exception::initialize();
 		rendering::initialize();
+		arxan::initialize();
 
 		PRINT_LOG("Initialized!");
 	}
@@ -83,7 +87,6 @@ namespace game
 		static auto base{ utils::nt::library{}.get_ptr() };
 		return reinterpret_cast<uintptr_t>(base);
 	}
-
 
 	TLSData* Sys_GetTLS()
 	{

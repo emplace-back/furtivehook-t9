@@ -1,4 +1,5 @@
 #include "dependencies/stdafx.hpp"
+#include <iphlpapi.h>
 
 BOOL __stdcall DllMain(const HMODULE module, const DWORD reason, const LPVOID /*reserved*/)
 {
@@ -10,7 +11,6 @@ BOOL __stdcall DllMain(const HMODULE module, const DWORD reason, const LPVOID /*
 			{
 				DisableThreadLibraryCalls(module);
 
-				arxan::initialize();
 				input::initialize();
 				events::initialize();
 				misc::initialize();
@@ -33,19 +33,4 @@ BOOL __stdcall DllMain(const HMODULE module, const DWORD reason, const LPVOID /*
 	}
 
 	return TRUE;
-}
-
-extern "C" __declspec(dllexport)
-NTSTATUS __stdcall CallNtPowerInformation(POWER_INFORMATION_LEVEL info_level, void* input_buffer, ULONG input_buffer_length, void* output_buffer, ULONG output_buffer_length)
-{
-	static auto call_nt_power_information = [=]
-	{
-		char path[MAX_PATH] = { 0 };
-		GetSystemDirectoryA(path, sizeof path);
-
-		const auto powrprof = utils::nt::library::load(path + "/powrprof.dll"s);
-		return powrprof.get_proc<decltype(&CallNtPowerInformation)>("CallNtPowerInformation");
-	}(); 
-	
-	return call_nt_power_information(info_level, input_buffer, input_buffer_length, output_buffer, output_buffer_length);
 }

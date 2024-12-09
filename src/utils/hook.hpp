@@ -84,6 +84,9 @@ namespace utils::hook
 		void clear();
 		void move();
 
+		static void disable_all();
+		static void enable_all();
+
 		void* get_original()
 		{
 			return this->original;

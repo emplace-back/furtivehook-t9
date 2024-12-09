@@ -149,6 +149,7 @@ namespace exception
 
 		rtl_dispatch_exception_hook.create(utils::hook::extract(ki_user_exception_dispatcher + 0x29 + 1), rtl_dispatch_exception);
 
+		return;
 		dvars::initialize();
 
 		exception::on_exception([](auto& ctx)

@@ -94,6 +94,16 @@ namespace utils::hook
 		return Assembler::jmp(uintptr_t(target));
 	}
 
+	void detour::disable_all()
+	{
+		MH_DisableHook(MH_ALL_HOOKS);
+	}
+
+	void detour::enable_all()
+	{
+		MH_EnableHook(MH_ALL_HOOKS);
+	}
+	
 	detour::detour(const uintptr_t place, void* target) : detour(reinterpret_cast<void*>(place), target)
 	{
 	}

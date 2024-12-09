@@ -49,6 +49,7 @@ namespace game
 
 	size_t msg_t::read_bits_compress(const void* from, size_t fromsize, void* to, size_t tosize) const
 	{
+		return 0;
 		return game::call<size_t>(0x7FF64A6C2190, from, fromsize, to, tosize);
 	}
 }

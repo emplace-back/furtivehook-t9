@@ -36,9 +36,7 @@ namespace rendering
 		const auto swapchain = *utils::hook::extract<IDXGISwapChain3**>(swapchain_ptr + 3);
 
 		if (!swapchain)
-		{
 			return;
-		}
 
 		swapchain_vmt.setup(swapchain);
 		swapchain_vmt.hook(8, present);
